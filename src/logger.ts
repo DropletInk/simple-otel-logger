@@ -1,4 +1,5 @@
 import { context, trace } from "@opentelemetry/api"
+import pino from "pino"
 
 export type LogLevel = "info" | "error" | "debug" | "warn"
 
@@ -6,48 +7,108 @@ export interface LoggerOptions {
   serviceName?: string
 }
 
-export class Logger {
+export interface Logger{
+  info(message:string,data?:any):void
+  error(message:string,data?:any):void
+  debug(message:string,data?:any):void
+  warn(message:string,data?:any):void
+}
+
+export function getOtelContext() {
+  const span = trace.getSpan(context.active())
+  if (!span) return {}
+
+  const sc = span.spanContext()
+
+  return {
+    traceId: sc.traceId,
+    spanId: sc.spanId,
+  }
+}
+
+
+export class ConsoleLogger implements Logger {
   constructor(private options: LoggerOptions = {}) {}
 
-  private getOtelContext() {
-    const span = trace.getSpan(context.active())
-
-    if (!span) return {}
-
-    const sc = span.spanContext()
-
+  buildRecord(level: LogLevel, message: string, data?: any) {
     return {
-      traceId: sc.traceId,
-      spanId: sc.spanId,
-    }
-  }
-
-  private log(level: LogLevel, message: string, data?: any) {
-    const record = {
       level,
       message,
       service: this.options.serviceName,
       timestamp: new Date().toISOString(),
-      ...this.getOtelContext(),
+      ...getOtelContext(),
       data,
     }
-
-    console.log(JSON.stringify(record))
   }
 
+  private writeToConsole(level: LogLevel, record: any) {
+    const out = JSON.stringify(record)
+
+    switch (level) {
+      case "info":
+        console.info(out)
+        break
+
+      case "debug":
+        console.debug(out)
+        break
+
+      case "warn":
+        console.warn(out)  
+        break
+
+      case "error":
+        console.error(out)  
+        break
+
+      default:
+        console.log(out)
+    }
+  }
+
+  info(message: string, data?: any): void {
+    const record = this.buildRecord("info", message, data)
+    this.writeToConsole("info", record)
+  }
+
+  error(message: string, data?: any): void {
+    const record = this.buildRecord("error", message, data)
+    this.writeToConsole("error", record)
+  }
+
+  debug(message: string, data?: any): void {
+    const record = this.buildRecord("debug", message, data)
+    this.writeToConsole("debug", record)
+  }
+
+  warn(message: string, data?: any): void {
+    const record = this.buildRecord("warn", message, data)
+    this.writeToConsole("warn", record)
+  }
+}
+
+
+export class PinoLogger implements Logger {
+  private logger = pino()
+
   info(msg: string, data?: any) {
-    this.log("info", msg, data)
+    this.logger.info({ ...getOtelContext(), data }, msg)
   }
 
   error(msg: string, data?: any) {
-    this.log("error", msg, data)
-  }
-
-  debug(msg: string, data?: any) {
-    this.log("debug", msg, data)
+    this.logger.error({ ...getOtelContext(), data }, msg)
   }
 
   warn(msg: string, data?: any) {
-    this.log("warn", msg, data)
+    this.logger.warn({ ...getOtelContext(), data }, msg)
   }
+
+  debug(msg: string, data?: any) {
+    this.logger.debug({ ...getOtelContext(), data }, msg)
+  }
+}
+
+export function createLogger(type: "console" | "pino"): Logger {
+  if (type === "pino") return new PinoLogger()
+  return new ConsoleLogger({serviceName:"my-service"})
 }
