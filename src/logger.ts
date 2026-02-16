@@ -8,6 +8,8 @@ export interface LoggerOptions {
 }
 
 export interface Logger{
+  log?(level: LogLevel, record: any): void
+
   info(message:string,data?:any):void
   error(message:string,data?:any):void
   debug(message:string,data?:any):void
@@ -41,7 +43,7 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  private writeToConsole(level: LogLevel, record: any) {
+   log(level: LogLevel, record: any) {
     const out = JSON.stringify(record)
 
     switch (level) {
@@ -68,22 +70,22 @@ export class ConsoleLogger implements Logger {
 
   info(message: string, data?: any): void {
     const record = this.buildRecord("info", message, data)
-    this.writeToConsole("info", record)
+    this.log("info", record)
   }
 
   error(message: string, data?: any): void {
     const record = this.buildRecord("error", message, data)
-    this.writeToConsole("error", record)
+    this.log("error", record)
   }
 
   debug(message: string, data?: any): void {
     const record = this.buildRecord("debug", message, data)
-    this.writeToConsole("debug", record)
+    this.log("debug", record)
   }
 
   warn(message: string, data?: any): void {
     const record = this.buildRecord("warn", message, data)
-    this.writeToConsole("warn", record)
+    this.log("warn", record)
   }
 }
 
