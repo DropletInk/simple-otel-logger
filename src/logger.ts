@@ -8,7 +8,7 @@ export interface LoggerOptions {
 }
 
 export interface Logger{
-  log?(level: LogLevel, record: any): void
+  log(level: LogLevel, record: any): void
 
   info(message:string,data?:any):void
   error(message:string,data?:any):void
@@ -89,28 +89,46 @@ export class ConsoleLogger implements Logger {
   }
 }
 
-
 export class PinoLogger implements Logger {
   private logger = pino()
 
+  log(level: LogLevel, record: any): void {
+    this.logger[level](record, record.message)
+  }
+
   info(msg: string, data?: any) {
-    this.logger.info({ ...getOtelContext(), data }, msg)
+    const record = {
+      message: msg,
+      ...getOtelContext(),
+      data,
+    }
+    this.log("info", record)
   }
 
   error(msg: string, data?: any) {
-    this.logger.error({ ...getOtelContext(), data }, msg)
+    const record = {
+      message: msg,
+      ...getOtelContext(),
+      data,
+    }
+    this.log("error", record)
   }
 
   warn(msg: string, data?: any) {
-    this.logger.warn({ ...getOtelContext(), data }, msg)
+    const record = {
+      message: msg,
+      ...getOtelContext(),
+      data,
+    }
+    this.log("warn", record)
   }
 
   debug(msg: string, data?: any) {
-    this.logger.debug({ ...getOtelContext(), data }, msg)
+    const record = {
+      message: msg,
+      ...getOtelContext(),
+      data,
+    }
+    this.log("debug", record)
   }
-}
-
-export function createLogger(type: "console" | "pino"): Logger {
-  if (type === "pino") return new PinoLogger()
-  return new ConsoleLogger({serviceName:"my-service"})
 }
