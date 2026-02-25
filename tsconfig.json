@@ -5,16 +5,17 @@
     "moduleResolution": "nodenext",
 
     "rootDir": "src",
-    "outDir": "dist",
+    "outDir": "./dist",
 
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
 
-    "composite": true,
+    "composite": false,
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noEmit": false
   },
   "include": ["src"]
 }
