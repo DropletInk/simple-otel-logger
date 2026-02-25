@@ -1,5 +1,9 @@
 import { context, trace } from "@opentelemetry/api"
 import pino from "pino"
+import fs from "fs"
+import path from "path"
+
+const logFilePath = path.join(process.cwd(), "app.log")
 
 export type LogLevel = "info" | "error" | "debug" | "warn"
 
@@ -7,13 +11,23 @@ export interface LoggerOptions {
   serviceName?: string
 }
 
-export interface Logger{
-  log(level: LogLevel, record: any): void
+export interface LogRecord<T = unknown> {
+  message: string
+  data?: T
+  traceId?: string
+  spanId?: string
+  level?: LogLevel
+  service?: string
+  timestamp?: string
+}
 
-  info(message:string,data?:any):void
-  error(message:string,data?:any):void
-  debug(message:string,data?:any):void
-  warn(message:string,data?:any):void
+export interface Logger {
+  log(level: LogLevel, record: LogRecord): void
+
+  info<T = unknown>(message: string, data?: T): void
+  error<T = unknown>(message: string, data?: T): void
+  debug<T = unknown>(message: string, data?: T): void
+  warn<T = unknown>(message: string, data?: T): void
 }
 
 export function getOtelContext() {
@@ -27,7 +41,6 @@ export function getOtelContext() {
     spanId: sc.spanId,
   }
 }
-
 
 export class ConsoleLogger implements Logger {
   constructor(private options: LoggerOptions = {}) {}
@@ -43,8 +56,10 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-   log(level: LogLevel, record: any) {
+  log(level: LogLevel, record: any) {
     const out = JSON.stringify(record)
+
+    fs.appendFileSync(logFilePath, out)
 
     switch (level) {
       case "info":
@@ -90,7 +105,13 @@ export class ConsoleLogger implements Logger {
 }
 
 export class PinoLogger implements Logger {
-  private logger = pino()
+  private logger = pino(
+    {},
+    pino.destination({
+      dest: "app.log",
+      sync: false,
+    })
+  )
 
   log(level: LogLevel, record: any): void {
     this.logger[level](record, record.message)
