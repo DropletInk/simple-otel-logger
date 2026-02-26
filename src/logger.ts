@@ -1,9 +1,5 @@
 import { context, trace } from "@opentelemetry/api"
 import pino from "pino"
-import fs from "fs"
-import path from "path"
-
-const logFilePath = path.join(process.cwd(), "app.log")
 
 export type LogLevel = "info" | "error" | "debug" | "warn"
 
@@ -58,8 +54,6 @@ export class ConsoleLogger implements Logger {
 
   log(level: LogLevel, record: any) {
     const out = JSON.stringify(record)
-
-    fs.appendFileSync(logFilePath, out)
 
     switch (level) {
       case "info":
