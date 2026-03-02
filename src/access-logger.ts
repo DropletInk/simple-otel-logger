@@ -1,10 +1,9 @@
-// http-logger.ts
-import { Logger } from "./logger.js"
+import { Logger, getOtelContext } from "./logger.js"
 import { randomUUID } from "crypto"
-import { getOtelContext } from "./logger.js"
+import type { Request, Response, NextFunction } from "express"
 
 export interface HttpLogOptions {
-  getUserId?: (req: any) => string | undefined
+  getUserId?: (req: Request) => string | undefined
   logBody?: boolean
   environment?: string
 }
@@ -13,11 +12,14 @@ export function createHttpLoggerMiddleware(
   logger: Logger,
   options: HttpLogOptions = {}
 ) {
-  return function httpLogger(req: any, res: any, next: any) {
+  return function httpLogger(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     const start = Date.now()
 
-    const requestId =
-      req.headers["x-request-id"] || randomUUID()
+    const requestId =(req.headers["x-request-id"] as string | undefined) ?? randomUUID()
 
     const userId = options.getUserId?.(req)
 
@@ -31,7 +33,7 @@ export function createHttpLoggerMiddleware(
       userAgent: req.headers["user-agent"],
       environment: options.environment,
       ...(options.logBody ? { body: req.body } : {}),
-      ...getOtelContext(),
+      ...getOtelContext()
     })
 
     res.on("finish", () => {
@@ -46,7 +48,7 @@ export function createHttpLoggerMiddleware(
         durationMs,
         userId,
         environment: options.environment,
-        ...getOtelContext(),
+        ...getOtelContext()
       })
     })
 
