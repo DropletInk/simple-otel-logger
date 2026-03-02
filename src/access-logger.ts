@@ -33,7 +33,7 @@ export function createHttpLoggerMiddleware(
       userAgent: req.headers["user-agent"],
       environment: options.environment,
       ...(options.logBody ? { body: req.body } : {}),
-      ...getOtelContext()
+//      ...getOtelContext()
     })
 
     res.on("finish", () => {
@@ -48,7 +48,7 @@ export function createHttpLoggerMiddleware(
         durationMs,
         userId,
         environment: options.environment,
-        ...getOtelContext()
+//        ...getOtelContext()
       })
     })
 
