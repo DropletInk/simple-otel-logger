@@ -99,13 +99,7 @@ export class ConsoleLogger implements Logger {
 }
 
 export class PinoLogger implements Logger {
-  private logger = pino(
-    {},
-    pino.destination({
-      dest: "app.log",
-      sync: false,
-    })
-  )
+  private logger = pino()
 
   log(level: LogLevel, record: any): void {
     this.logger[level](record, record.message)
