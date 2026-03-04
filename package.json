@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "test": "node --test"
+    "test": "npm run build && node --test dist"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

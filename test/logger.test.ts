@@ -2,45 +2,52 @@ import test from "node:test"
 import assert from "node:assert"
 import { ConsoleLogger, PinoLogger } from "../src/logger"
 
+function mockConsole(method: "info" | "error", fn: (...args: any[]) => void) {
+  const original = console[method]
+  console[method] = fn
+  return () => {
+    console[method] = original
+  }
+}
+
 test("ConsoleLogger info calls console.info", (t) => {
   let called = false
 
-  const original = console.info
-  console.info = () => {
+  const restore = mockConsole("info", () => {
     called = true
-  }
+  })
+
+  t.after(restore)
 
   const logger = new ConsoleLogger({ serviceName: "test-service" })
   logger.info("hello", { user: "abc" })
 
   assert.equal(called, true)
-
-  console.info = original
 })
 
-test("ConsoleLogger error calls console.error", () => {
+test("ConsoleLogger error calls console.error", (t) => {
   let called = false
 
-  const original = console.error
-  console.error = () => {
+  const restore = mockConsole("error", () => {
     called = true
-  }
+  })
+
+  t.after(restore)
 
   const logger = new ConsoleLogger()
   logger.error("fail")
 
   assert.equal(called, true)
-
-  console.error = original
 })
 
-test("ConsoleLogger record contains expected fields", () => {
+test("ConsoleLogger record contains expected fields", (t) => {
   let output = ""
 
-  const original = console.info
-  console.info = (msg) => {
+  const restore = mockConsole("info", (msg: string) => {
     output = msg
-  }
+  })
+
+  t.after(restore)
 
   const logger = new ConsoleLogger({ serviceName: "svc" })
   logger.info("login", { userId: "u1" })
@@ -52,8 +59,6 @@ test("ConsoleLogger record contains expected fields", () => {
   assert.equal(parsed.service, "svc")
   assert.ok(parsed.timestamp)
   assert.equal(parsed.data.userId, "u1")
-
-  console.info = original
 })
 
 test("PinoLogger does not throw on info", () => {
