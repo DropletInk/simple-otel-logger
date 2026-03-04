@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert"
-import { createHttpLoggerMiddleware } from "../src/access-logger"
+import { createHttpLoggerMiddleware } from "../src/access-logger.ts"
 import type { Request, Response, NextFunction } from "express"
 
 test("middleware logs request and response", () => {

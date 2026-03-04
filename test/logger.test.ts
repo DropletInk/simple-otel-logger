@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert"
-import { ConsoleLogger, PinoLogger } from "../src/logger"
+import { ConsoleLogger, PinoLogger } from "../src/logger.ts"
 
 function mockConsole(method: "info" | "error", fn: (...args: any[]) => void) {
   const original = console[method]
