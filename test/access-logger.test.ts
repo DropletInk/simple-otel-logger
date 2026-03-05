@@ -46,4 +46,4 @@ test("httpLogger logs request and response", async () => {
   assert.equal(logs.length, 2)
   assert.equal(logs[0].msg, "HTTP request received")
   assert.equal(logs[1].msg, "HTTP response sent")
-})
+}) 
