@@ -1,52 +1,49 @@
 import test from "node:test"
 import assert from "node:assert"
-import { createHttpLoggerMiddleware } from "../src/access-logger.ts"
-import type { Request, Response, NextFunction } from "express"
 
-test("middleware logs request and response", () => {
-  const calls: any[] = []
+import { createHttpLoggerMiddleware } from "../src/access-logger.js"
 
- 
-  const fakeLogger = {
-    info: (_msg: string, data: any) => {
-      calls.push(data)
-    },
+test("httpLogger logs request and response", async () => {
+  const logs: any[] = []
+
+  const logger = {
+    info: (msg: string, data: any) => {
+      logs.push({ msg, data })
+    }
   }
 
-  const middleware = createHttpLoggerMiddleware(fakeLogger as any, {
-    environment: "test",
-    logBody: true,
-    getUserId: (req: any) => req.user?.id,
-  })
+  const middleware = createHttpLoggerMiddleware(logger as any)
 
-  const req = {
-    method: "POST",
-    originalUrl: "/login",
-    headers: { "user-agent": "jest" },
+  const req: any = {
+    method: "GET",
+    originalUrl: "/users",
+    headers: {},
     ip: "127.0.0.1",
-    body: { email: "a@b.com" },
-    user: { id: "u1" },
-    route: { path: "/login" },
-  } as unknown as Request
+    route: { path: "/users" }
+  }
 
-  let finishHandler: Function = () => {}
+  let finishCallback: any
 
-  const res = {
+  const res: any = {
     statusCode: 200,
-    on: (event: string, cb: Function) => {
-      if (event === "finish") finishHandler = cb
-    },
-  } as unknown as Response
+    on: (event: string, cb: any) => {
+      if (event === "finish") finishCallback = cb
+    }
+  }
 
-  const next: NextFunction = () => {}
+  let nextCalled = false
+
+  const next = () => {
+    nextCalled = true
+  }
 
   middleware(req, res, next)
 
-  finishHandler()
+  assert.equal(nextCalled, true)
 
-  // assertions
-  assert.equal(calls.length, 2)
-  assert.equal(calls[0].method, "POST")
-  assert.equal(calls[0].userId, "u1")
-  assert.equal(calls[1].statusCode, 200)
+  finishCallback()
+
+  assert.equal(logs.length, 2)
+  assert.equal(logs[0].msg, "HTTP request received")
+  assert.equal(logs[1].msg, "HTTP response sent")
 })

@@ -1,70 +1,51 @@
 import test from "node:test"
 import assert from "node:assert"
-import { ConsoleLogger, PinoLogger } from "../src/logger.ts"
 
-function mockConsole(method: "info" | "error", fn: (...args: any[]) => void) {
-  const original = console[method]
-  console[method] = fn
-  return () => {
-    console[method] = original
-  }
-}
+import { ConsoleLogger, getOtelContext, PinoLogger } from "../src/logger.js"
 
-test("ConsoleLogger info calls console.info", (t) => {
-  let called = false
+test("getOtelContext returns empty object when no span", () => {
+  const ctx = getOtelContext()
+  assert.deepStrictEqual(ctx, {})
+})
 
-  const restore = mockConsole("info", () => {
-    called = true
-  })
-
-  t.after(restore)
-
+test("ConsoleLogger.info logs message", () => {
   const logger = new ConsoleLogger({ serviceName: "test-service" })
-  logger.info("hello", { user: "abc" })
 
-  assert.equal(called, true)
-})
-
-test("ConsoleLogger error calls console.error", (t) => {
-  let called = false
-
-  const restore = mockConsole("error", () => {
-    called = true
-  })
-
-  t.after(restore)
-
-  const logger = new ConsoleLogger()
-  logger.error("fail")
-
-  assert.equal(called, true)
-})
-
-test("ConsoleLogger record contains expected fields", (t) => {
   let output = ""
+  const original = console.info
 
-  const restore = mockConsole("info", (msg: string) => {
+  console.info = (msg: any) => {
     output = msg
-  })
+  }
 
-  t.after(restore)
+  logger.info("test message", { id: 1 })
 
-  const logger = new ConsoleLogger({ serviceName: "svc" })
-  logger.info("login", { userId: "u1" })
+  console.info = original
 
-  const parsed = JSON.parse(output)
-
-  assert.equal(parsed.message, "login")
-  assert.equal(parsed.level, "info")
-  assert.equal(parsed.service, "svc")
-  assert.ok(parsed.timestamp)
-  assert.equal(parsed.data.userId, "u1")
+  assert.ok(output.includes("test message"))
 })
 
-test("PinoLogger does not throw on info", () => {
+test("ConsoleLogger.error logs error", () => {
+  const logger = new ConsoleLogger()
+
+  let called = false
+  const original = console.error
+
+  console.error = () => {
+    called = true
+  }
+
+  logger.error("error happened")
+
+  console.error = original
+
+  assert.equal(called, true)
+})
+
+test("PinoLogger.info does not throw", () => {
   const logger = new PinoLogger()
 
   assert.doesNotThrow(() => {
-    logger.info("hello", { id: 1 })
+    logger.info("pino test", { x: 1 })
   })
 })

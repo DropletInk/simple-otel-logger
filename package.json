@@ -7,11 +7,11 @@
   "files": [
     "dist"
   ],
-  "scripts": {
-    "build": "tsc",
-    "prepare": "npm run build",
-    "test": "npm run build && node --test dist"
-  },
+"scripts": {
+  "build": "tsc",
+  "prepare": "npm run build",
+  "test": "node --loader ts-node/esm --test test/*.test.ts"
+},
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
@@ -37,7 +37,8 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^25.2.2",
+    "@types/node": "^25.3.3",
+    "ts-node": "^10.9.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   }
