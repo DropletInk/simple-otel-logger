@@ -36,7 +36,7 @@ test("httpLogger logs request and response", async () => {
   const next = () => {
     nextCalled = true
   }
-
+ 
   middleware(req, res, next)
 
   assert.equal(nextCalled, true)
