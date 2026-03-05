@@ -48,4 +48,4 @@ test("PinoLogger.info does not throw", () => {
   assert.doesNotThrow(() => {
     logger.info("pino test", { x: 1 })
   })
-})
+}) 
