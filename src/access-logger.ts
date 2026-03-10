@@ -6,11 +6,14 @@ export interface HttpLogOptions {
   getUserId?: (req: Request) => string | undefined
   logBody?: boolean
   environment?: string
+
+  requestData?: (req: Request) => Record<string, unknown>
+  responseData?: (req: Request, res: Response, durationMs: number) => Record<string, unknown>  
 }
 
 export function createHttpLoggerMiddleware(
   logger: Logger,
-  options: HttpLogOptions = {}
+  options: HttpLogOptions 
 ) {
   return function httpLogger(
     req: Request,
@@ -19,36 +22,34 @@ export function createHttpLoggerMiddleware(
   ) {
     const start = Date.now()
 
-    const requestId =(req.headers["x-request-id"] as string | undefined) ?? randomUUID()
+    const requestId =
+      (req.headers["x-request-id"] as string | undefined) ?? randomUUID()
 
     const userId = options.getUserId?.(req)
 
+    const requestData = options.requestData
+      ? options.requestData(req)
+      : {}
+
     logger.info("HTTP request received", {
       requestId,
-      method: req.method,
-      url: req.originalUrl,
-      route: req.route?.path,
       userId,
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
       environment: options.environment,
-      ...(options.logBody ? { body: req.body } : {}),
-//      ...getOtelContext()
+      ...requestData
     })
 
     res.on("finish", () => {
       const durationMs = Date.now() - start
 
+      const responseData = options.responseData
+        ? options.responseData(req, res, durationMs)
+        : {}
+
       logger.info("HTTP response sent", {
         requestId,
-        method: req.method,
-        url: req.originalUrl,
-        route: req.route?.path,
-        statusCode: res.statusCode,
-        durationMs,
         userId,
         environment: options.environment,
-//        ...getOtelContext()
+        ...responseData
       })
     })
 
