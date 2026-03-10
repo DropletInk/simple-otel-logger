@@ -4,7 +4,6 @@ import pino, { Logger as PinoInstance } from "pino"
 export type LogLevel = "info" | "error" | "debug" | "warn"
 
 export interface LoggerOptions {
-  serviceName?: string
   base?:Record<string,unknown>
   customLevels?:string
 }
@@ -15,7 +14,6 @@ export interface LogRecord<T> {
   traceId?: string
   spanId?: string
   level: LogLevel | string
-  service?: string
   timestamp?: string
   [key:string]: unknown
 }
@@ -50,7 +48,6 @@ export class ConsoleLogger implements Logger {
     return {
       level: this.options.customLevels ?? level ,
       timestamp: new Date().toISOString(),
-      service: this.options.serviceName,
       ...(this.options.base ?? {}),
       message,
       ...getOtelContext(),
@@ -112,7 +109,6 @@ export class PinoLogger implements Logger {
   constructor(private options: LoggerOptions = {}) {
     this.logger = pino({
       base: {
-        service: this.options.serviceName,
         ...(this.options.base ?? {}),
       }
     })
@@ -121,9 +117,9 @@ export class PinoLogger implements Logger {
   buildRecord<T>(level: LogLevel, message: string, data?: T): LogRecord<T> {
     return {
       level: this.options.customLevels ?? level ,
-      message,
-      service: this.options.serviceName,
+      ...(this.options.base),
       timestamp: new Date().toISOString(),
+      message,
       ...getOtelContext(),
       ...(data !== undefined && { data })
     }

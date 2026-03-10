@@ -9,7 +9,7 @@ test("getOtelContext returns empty object when no span", () => {
 })
 
 test("ConsoleLogger.info logs message", () => {
-  const logger = new ConsoleLogger({ serviceName: "test-service" })
+  const logger = new ConsoleLogger({ base: {"service":"test-service" }})
 
   let output = ""
   const original = console.info
