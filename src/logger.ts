@@ -48,11 +48,11 @@ export class ConsoleLogger implements Logger {
 
   buildRecord<T>(level: LogLevel | string, message: string, data?: T):LogRecord<T> {
     return {
-      ...(this.options.base ?? {}),
       level: this.options.customLevels ?? level ,
-      message,
-      service: this.options.serviceName,
       timestamp: new Date().toISOString(),
+      service: this.options.serviceName,
+      ...(this.options.base ?? {}),
+      message,
       ...getOtelContext(),
       data,
     }
