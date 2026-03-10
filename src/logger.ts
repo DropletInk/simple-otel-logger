@@ -1,32 +1,36 @@
 import { context, trace } from "@opentelemetry/api"
-import pino from "pino"
+import pino, { Logger as PinoInstance } from "pino"
 
 export type LogLevel = "info" | "error" | "debug" | "warn"
 
 export interface LoggerOptions {
   serviceName?: string
+  base?:Record<string,unknown>
 }
 
-export interface LogRecord<T = unknown> {
+export interface LogRecord<T> {
   message: string
   data?: T
   traceId?: string
   spanId?: string
-  level?: LogLevel
+  level: LogLevel
   service?: string
   timestamp?: string
+  [key:string]: unknown
 }
 
 export interface Logger {
-  log(level: LogLevel, record: LogRecord): void
+  log<T>(level: LogLevel, record: LogRecord<T>): void
 
-  info<T = unknown>(message: string, data?: T): void
-  error<T = unknown>(message: string, data?: T): void
-  debug<T = unknown>(message: string, data?: T): void
-  warn<T = unknown>(message: string, data?: T): void
+  info<T>(message: string, data?: T): void
+  error<T>(message: string, data?: T): void
+  debug<T>(message: string, data?: T): void
+  warn<T>(message: string, data?: T): void
+
+  buildRecord<T>(level: LogLevel, message: string, data?: T):LogRecord<T>
 }
 
-export function getOtelContext() {
+export function getOtelContext(): { traceId?: string; spanId?: string }{
   const span = trace.getSpan(context.active())
   if (!span) return {}
 
@@ -41,8 +45,9 @@ export function getOtelContext() {
 export class ConsoleLogger implements Logger {
   constructor(private options: LoggerOptions = {}) {}
 
-  buildRecord(level: LogLevel, message: string, data?: any) {
+  buildRecord<T>(level: LogLevel, message: string, data?: T):LogRecord<T> {
     return {
+      ...(this.options.base ?? {}),
       level,
       message,
       service: this.options.serviceName,
@@ -52,7 +57,7 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  log(level: LogLevel, record: any) {
+  log<T>(level: LogLevel, record:LogRecord<T>) {
     const out = JSON.stringify(record)
 
     switch (level) {
@@ -77,67 +82,73 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  info(message: string, data?: any): void {
+  info<T>(message: string, data?: T): void {
     const record = this.buildRecord("info", message, data)
     this.log("info", record)
   }
 
-  error(message: string, data?: any): void {
+  error<T>(message: string, data?: T): void {
     const record = this.buildRecord("error", message, data)
     this.log("error", record)
   }
 
-  debug(message: string, data?: any): void {
+  debug<T>(message: string, data?: T): void {
     const record = this.buildRecord("debug", message, data)
     this.log("debug", record)
   }
 
-  warn(message: string, data?: any): void {
+  warn<T>(message: string, data?: T): void {
     const record = this.buildRecord("warn", message, data)
     this.log("warn", record)
   }
 }
 
-export class PinoLogger implements Logger {
-  private logger = pino()
 
-  log(level: LogLevel, record: any): void {
-    this.logger[level](record, record.message)
+export class PinoLogger implements Logger {
+
+  private logger: PinoInstance
+
+  constructor(private options: LoggerOptions = {}) {
+    this.logger = pino({
+      base: {
+        service: this.options.serviceName,
+        ...(this.options.base ?? {})
+      }
+    })
   }
 
-  info(msg: string, data?: any) {
-    const record = {
-      message: msg,
+  buildRecord<T>(level: LogLevel, message: string, data?: T): LogRecord<T> {
+    return {
+      level,
+      message,
+      service: this.options.serviceName,
+      timestamp: new Date().toISOString(),
       ...getOtelContext(),
-      data,
+      ...(data !== undefined && { data })
     }
+  }
+
+  log<T>(level: LogLevel, record: LogRecord<T>): void {
+    this.logger[level](record)
+  }
+
+  info<T>(message: string, data?: T): void {
+    const record = this.buildRecord("info", message, data)
     this.log("info", record)
   }
 
-  error(msg: string, data?: any) {
-    const record = {
-      message: msg,
-      ...getOtelContext(),
-      data,
-    }
+  error<T>(message: string, data?: T): void {
+    const record = this.buildRecord("error", message, data)
     this.log("error", record)
   }
 
-  warn(msg: string, data?: any) {
-    const record = {
-      message: msg,
-      ...getOtelContext(),
-      data,
-    }
+  warn<T>(message: string, data?: T): void {
+    const record = this.buildRecord("warn", message, data)
     this.log("warn", record)
   }
 
-  debug(msg: string, data?: any) {
-    const record = {
-      message: msg,
-      ...getOtelContext(),
-      data,
-    }
+  debug<T>(message: string, data?: T): void {
+    const record = this.buildRecord("debug", message, data)
     this.log("debug", record)
   }
 }

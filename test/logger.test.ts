@@ -14,7 +14,7 @@ test("ConsoleLogger.info logs message", () => {
   let output = ""
   const original = console.info
 
-  console.info = (msg: any) => {
+  console.info = (msg: string) => {
     output = msg
   }
 
