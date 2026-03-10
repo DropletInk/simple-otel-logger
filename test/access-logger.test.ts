@@ -35,7 +35,7 @@ test("httpLogger logs request and response with custom options", async () => {
     })
   })
 
-  const req = {
+  const req:Partial<Request> = {
     method: "GET",
     originalUrl: "/users",
     headers: {
@@ -43,16 +43,17 @@ test("httpLogger logs request and response with custom options", async () => {
     },
     ip: "127.0.0.1",
     route: { path: "/users" }
-  } as unknown as Request
+  } 
 
   let finishCallback: (() => void) | undefined
 
-  const res = {
+  const res: Partial<Response>= {
     statusCode: 200,
-    on: (event: string, cb: () => void) => {
-      if (event === "finish") finishCallback = cb
+    on(event: string, cb: () => void) {
+     if (event === "finish") finishCallback = cb
+     return this as Response
     }
-  } as unknown as Response
+  }
 
   let nextCalled = false
 
@@ -60,7 +61,7 @@ test("httpLogger logs request and response with custom options", async () => {
     nextCalled = true
   }
 
-  middleware(req, res, next)
+  middleware(req as Request, res as Response, next)
 
   assert.equal(nextCalled, true)
 
