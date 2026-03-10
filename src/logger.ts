@@ -6,6 +6,7 @@ export type LogLevel = "info" | "error" | "debug" | "warn"
 export interface LoggerOptions {
   serviceName?: string
   base?:Record<string,unknown>
+  customLevels?:string
 }
 
 export interface LogRecord<T> {
@@ -13,7 +14,7 @@ export interface LogRecord<T> {
   data?: T
   traceId?: string
   spanId?: string
-  level: LogLevel
+  level: LogLevel | string
   service?: string
   timestamp?: string
   [key:string]: unknown
@@ -45,10 +46,10 @@ export function getOtelContext(): { traceId?: string; spanId?: string }{
 export class ConsoleLogger implements Logger {
   constructor(private options: LoggerOptions = {}) {}
 
-  buildRecord<T>(level: LogLevel, message: string, data?: T):LogRecord<T> {
+  buildRecord<T>(level: LogLevel | string, message: string, data?: T):LogRecord<T> {
     return {
       ...(this.options.base ?? {}),
-      level,
+      level: this.options.customLevels ?? level ,
       message,
       service: this.options.serviceName,
       timestamp: new Date().toISOString(),
@@ -112,14 +113,14 @@ export class PinoLogger implements Logger {
     this.logger = pino({
       base: {
         service: this.options.serviceName,
-        ...(this.options.base ?? {})
+        ...(this.options.base ?? {}),
       }
     })
   }
 
   buildRecord<T>(level: LogLevel, message: string, data?: T): LogRecord<T> {
     return {
-      level,
+      level: this.options.customLevels ?? level ,
       message,
       service: this.options.serviceName,
       timestamp: new Date().toISOString(),
