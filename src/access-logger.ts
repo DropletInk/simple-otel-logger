@@ -37,7 +37,7 @@ export function createHttpLoggerMiddleware(
     logger.info("HTTP request received", {
       requestId,
       userId,
-      handler:handlerName,
+      handler:console.log(handlerName),
       environment: options.environment,
       ...requestData
     })
