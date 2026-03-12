@@ -27,9 +27,6 @@ export function createHttpLoggerMiddleware(
 
     const userId = options.getUserId?.(req)
 
-    const handlerName =
-    req.route?.stack?.[req.route.stack.length - 1]?.name
-
     const requestData = options.requestData
       ? options.requestData(req)
       : {}
@@ -37,7 +34,6 @@ export function createHttpLoggerMiddleware(
     logger.info("HTTP request received", {
       requestId,
       userId,
-      handler:console.log(handlerName),
       environment: options.environment,
       ...requestData
     })
