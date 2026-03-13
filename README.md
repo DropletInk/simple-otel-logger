@@ -38,14 +38,14 @@ npm install git+https://github.com/DropletInk/simple-otel-logger.git
 ## Enable Telemetry Automatically
 
 ### Import the module before import express and starting your server.
-```
+```typescript
 import "@dropletink/simple-otel-logger/auto"
 ```
 
 This initializes OpenTelemetry instrumentation automatically.
 
 ## Basic Logger Example
-```
+```typescript
 import { ConsoleLogger } from "@dropletink/simple-otel-logger"
 
 const logger = new ConsoleLogger({
@@ -64,7 +64,7 @@ logger.info("Application started",{data})
 ```
 
 ## Example output:
-```
+```json
 {
   "service": "auth-service",
   "level": "info",
@@ -79,7 +79,7 @@ logger.info("Application started",{data})
 ### The library provides middleware to log HTTP requests and responses.
 
 ### Example:
-```
+```typescript
 import express from "express"
 import {
   ConsoleLogger,
@@ -121,7 +121,7 @@ app.listen(3000)
 ## Example Logs
 
 ### Request log:
-```
+```json
 {
   "message": "HTTP request received",
   "method": "GET",
@@ -130,7 +130,8 @@ app.listen(3000)
 }
 ```
 ### Response log:
-```
+
+```json
 {
   "message": "HTTP response sent",
   "method": "GET",
@@ -147,7 +148,7 @@ app.listen(3000)
 ## ConsoleLogger
 
 ### Logs structured JSON using the Node console.
-```
+```typescript
 import { ConsoleLogger } from "@dropletink/simple-otel-logger"
 
 const logger = new ConsoleLogger({
@@ -160,7 +161,7 @@ const logger = new ConsoleLogger({
 ## PinoLogger
 
 ### High-performance structured logging using Pino.
-```
+```typescript
 import { PinoLogger } from "@dropletink/simple-otel-logger"
 
 const logger = new PinoLogger({
