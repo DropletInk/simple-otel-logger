@@ -32,7 +32,7 @@
 - Automatic telemetry bootstrap
 
 ## Installation
-```
+```bash
 npm install git+https://github.com/DropletInk/simple-otel-logger.git
 ```
 ## Enable Telemetry Automatically
