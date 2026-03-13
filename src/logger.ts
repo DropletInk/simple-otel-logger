@@ -31,6 +31,8 @@ export interface Logger {
 
 export function getOtelContext(): { traceId?: string; spanId?: string }{
   const span = trace.getSpan(context.active())
+
+  //console.log(trace.getSpan(context.active()))
   if (!span) return {}
 
   const sc = span.spanContext()
