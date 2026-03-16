@@ -1,60 +1,170 @@
 # simple-otel-logger
 
-## overview
-simple-otel-logger is a lightweight TypeScript logging library that produces structured JSON logs enriched with OpenTelemetry trace context. It easy to integrate consistent observability across services. Designed for simplicity, type safety, and extensibility in modern Node.js applications.
+## A lightweight structured logging and tracing utility for Node.js services using OpenTelemetry.
+
+## It provides:
+- Structured logging
+
+- HTTP request/response logging middleware
+
+- Automatic trace and span correlation
+
+- Support for both console logging and Pino
+
+- Automatic telemetry initialization
+
+- Designed for microservices built with Express.js.
 
 ## Features
+
 - Structured JSON logging
-- OpenTelemetry context injection
-- Level-based logging
-- TypeScript-first design
 
+- Automatic traceId and spanId injection
 
-## ⚙️ Requirements
+- HTTP request/response logging middleware
 
+ - OpenTelemetry integration
+
+- Pino and console logger support
+
+- Configurable log metadata
+
+- Automatic telemetry bootstrap
+
+## Installation
 ```bash
-node >= 18
-typescript
-@opentelemetry/api
-```
-
-## Installation Process
-### Install the Library
-```
 npm install git+https://github.com/DropletInk/simple-otel-logger.git
 ```
+## Enable Telemetry Automatically
 
-## Usage Examples
-## Import the logger
+### Import the module before import express and starting your server.
+```typescript
+import "@dropletink/simple-otel-logger/auto"
 ```
-import { ConsoleLogger } from "simple-otel-logger"
-```
-## Create a logger instance
 
-```
+This initializes OpenTelemetry instrumentation automatically.
+
+## Basic Logger Example
+```typescript
+import { ConsoleLogger } from "@dropletink/simple-otel-logger"
+
 const logger = new ConsoleLogger({
-  serviceName: "auth-service",
-})
-```
-## Write logs
-```
-logger.info("login_attempt", { email: "user@gmail.com" })
-logger.error("login_failed", { reason: "invalid_password" })
-logger.warn("rate_limit_near")
-logger.debug("payload_received", { size: 123 })
-```
-## ConsoleLogger output:
-```
-{
-  "level": "info",
-  "message": "login_attempt",
-  "service": "auth-service",
-  "timestamp": "2026-02-13T10:00:00.000Z",
-  "traceId": "...",
-  "spanId": "...",
-  "data": {
-    "email": "user@gmail.com"
+  base: {
+    service: "auth-service"
   }
+})
+
+const data = "my data"
+
+logger.info("Application started",{data})
+// logger.error("Application error",{data})
+// logger.warn("Application warning",{data})
+// logger.debug("Application debug",{data})
+
+```
+
+## Example output:
+```json
+{
+  "service": "auth-service",
+  "level": "info",
+  "message": "Application started",
+  "timestamp": "2026-03-13T10:00:00Z",
+  "traceId": "f2b8c7...",
+  "spanId": "1d9a2c..."
 }
 ```
+## HTTP Request Logging Middleware
 
+### The library provides middleware to log HTTP requests and responses.
+
+### Example:
+```typescript
+import express from "express"
+import {
+  ConsoleLogger,
+  createHttpLoggerMiddleware
+} from "@dropletink/simple-otel-logger"
+
+const logger = new ConsoleLogger({
+  base: { service: "api-server" }
+})
+
+const app = express()
+
+app.use(
+  createHttpLoggerMiddleware(logger, {
+    environment: "production",
+
+    getUserId: (req) => req.headers["x-user-id"],
+
+    requestData: (req) => ({
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"]
+    }),
+
+    responseData: (req, res, duration) => ({
+      method: req.method,
+      url: req.originalUrl,
+      handler: req.route?.stack?.at(-1)?.name,
+      statusCode: res.statusCode,
+      durationMs: duration
+    })
+  })
+)
+
+app.listen(3000)
+```
+
+## Example Logs
+
+### Request log:
+```json
+{
+  "message": "HTTP request received",
+  "method": "GET",
+  "url": "/users",
+  "ip": "127.0.0.1"
+}
+```
+### Response log:
+
+```json
+{
+  "message": "HTTP response sent",
+  "method": "GET",
+  "url": "/users",
+  "handler": "login"
+  "statusCode": 200,
+  "durationMs": 34,
+}
+```
+## Logger Types
+
+### The library currently supports two logger implementations.
+
+## ConsoleLogger
+
+### Logs structured JSON using the Node console.
+```typescript
+import { ConsoleLogger } from "@dropletink/simple-otel-logger"
+
+const logger = new ConsoleLogger({
+  base: {
+    service: "auth-service"
+  }
+})
+```
+
+## PinoLogger
+
+### High-performance structured logging using Pino.
+```typescript
+import { PinoLogger } from "@dropletink/simple-otel-logger"
+
+const logger = new PinoLogger({
+  serviceName: "auth-service"
+})
+```
