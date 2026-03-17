@@ -3,7 +3,6 @@ import { randomUUID } from "crypto"
 import type { Request, Response, NextFunction } from "express"
 
 export interface HttpLogOptions {
-  getUserId?: (req: Request) => string | undefined
   logBody?: boolean
   environment?: string
 
@@ -25,15 +24,12 @@ export function createHttpLoggerMiddleware(
     const requestId =
       (req.headers["x-request-id"] as string | undefined) ?? randomUUID()
 
-    const userId = options.getUserId?.(req)
-
     const requestData = options.requestData
       ? options.requestData(req)
       : {}
 
     logger.info("HTTP request received", {
       requestId,
-      userId,
       environment: options.environment,
       ...requestData
     })
@@ -47,7 +43,6 @@ export function createHttpLoggerMiddleware(
 
       logger.info("HTTP response sent", {
         requestId,
-        userId,
         environment: options.environment,
         ...responseData
       })

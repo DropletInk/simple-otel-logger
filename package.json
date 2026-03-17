@@ -4,20 +4,18 @@
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-
   "exports": {
     ".": "./dist/index.js",
     "./auto": "./dist/auto.js"
   },
-  
   "files": [
     "dist"
   ],
-"scripts": {
-  "build": "tsc",
-  "prepare": "npm run build",
-  "test": "node --loader ts-node/esm --test test/*.test.ts"
-},
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test": "node --loader ts-node/esm --test test/*.test.ts"
+  },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
@@ -35,6 +33,7 @@
   "homepage": "https://github.com/DropletInk/simple-otel-logger#readme",
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.71.0",
     "@opentelemetry/instrumentation-express": "^0.60.0",
     "@opentelemetry/instrumentation-http": "^0.212.0",
     "@opentelemetry/sdk-node": "^0.212.0",
