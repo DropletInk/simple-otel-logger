@@ -19,10 +19,19 @@ export function createHttpLoggerMiddleware(
     res: Response,
     next: NextFunction
   ) {
-    const start = Date.now()
+    const start = performance.now()
 
+    const headerRequestId = req.headers["x-request-id"]
+    
+    const { traceId } = getOtelContext()
+    
     const requestId =
-      (req.headers["x-request-id"] as string | undefined) ?? randomUUID()
+      (Array.isArray(headerRequestId)
+        ? headerRequestId[0]
+        : headerRequestId) ??
+      traceId ??
+      randomUUID()
+
 
     const requestData = options.requestData
       ? options.requestData(req)
@@ -35,7 +44,14 @@ export function createHttpLoggerMiddleware(
     })
 
     res.on("finish", () => {
-      const durationMs = Date.now() - start
+      if (res.statusCode >= 500) {
+        logger.error("HTTP error response", {
+          statusCode: res.statusCode,
+          requestId,
+        })
+      } 
+
+      const durationMs =  performance.now() - start
 
       const responseData = options.responseData
         ? options.responseData(req, res, durationMs)

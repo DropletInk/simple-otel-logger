@@ -22,7 +22,6 @@ test("httpLogger logs request and response with custom options", async () => {
   const middleware = createHttpLoggerMiddleware(logger as any, {
     environment: "test",
 
-    getUserId: (req: Request) => req.headers["x-user-id"] as string | undefined,
 
     requestData: (req: Request) => ({
       method: req.method,

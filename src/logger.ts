@@ -38,21 +38,28 @@ export async function withSpan<T>(
   const tracer = trace.getTracer("simple-otel-logger")
 
   return tracer.startActiveSpan(name, async (span) => {
-    const start = Date.now()
+    const start = performance.now()
 
     try {
       return await fn()
     } catch (err) {
       span.recordException(err as Error)
+      span.setAttributes({
+        "app.success": false,
+      })
       span.setStatus({ code: 2 })
       throw err
     } finally {
-      const duration = Date.now() - start
+      const duration = performance.now() - start
 
-      span.setAttribute("duration.ms", duration)
+      span.setAttributes({
+        "duration.ms": duration,
+        "app.operation": name,
+        "app.success": true,
+      })
 
       if (logger) {
-        logger.info(`${name} completed`, { durationMs: duration })
+        logger.info(`${name} -> (Done)`, { durationMs: duration })
       }
 
       span.end()
@@ -60,12 +67,10 @@ export async function withSpan<T>(
   })
 }
 
-export function getOtelContext(): { traceId?: string; spanId?: string }{
+export function getOtelContext() {
   const span = trace.getSpan(context.active())
-
-  //console.log(trace.getSpan(context.active()))
   if (!span) return {}
-
+  
   const sc = span.spanContext()
 
   return {
