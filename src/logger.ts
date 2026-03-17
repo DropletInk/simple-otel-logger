@@ -32,23 +32,33 @@ export interface Logger {
 // for getting the child sapn 
 export async function withSpan<T>(
   name: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
+  logger?: Logger
 ): Promise<T> {
-  const tracer = trace.getTracer('simple-otel-logger')
+  const tracer = trace.getTracer("simple-otel-logger")
 
   return tracer.startActiveSpan(name, async (span) => {
+    const start = Date.now()
+
     try {
-      const result = await fn()
-      return result
+      return await fn()
     } catch (err) {
       span.recordException(err as Error)
+      span.setStatus({ code: 2 })
       throw err
     } finally {
+      const duration = Date.now() - start
+
+      span.setAttribute("duration.ms", duration)
+
+      if (logger) {
+        logger.info(`${name} completed`, { durationMs: duration })
+      }
+
       span.end()
     }
   })
 }
-
 
 export function getOtelContext(): { traceId?: string; spanId?: string }{
   const span = trace.getSpan(context.active())
