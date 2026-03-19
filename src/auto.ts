@@ -1,3 +1,2 @@
-import { initTelemetry } from "./telemetry.js"
+export  { initTelemetry } from "./telemetry.js"
 
-initTelemetry()
