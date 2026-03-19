@@ -19,8 +19,6 @@ export function createHttpLoggerMiddleware(
     res: Response,
     next: NextFunction
   ) {
-    //const start = performance.now()
-
     const headerRequestId = req.headers["x-request-id"]
     
     const { traceId } = getOtelContext()
@@ -31,7 +29,6 @@ export function createHttpLoggerMiddleware(
         : headerRequestId) ??
       traceId ??
       randomUUID()
-
 
     const requestData = options.requestData
       ? options.requestData(req)
@@ -51,7 +48,6 @@ export function createHttpLoggerMiddleware(
         })
       } 
 
-      //const durationMs =  performance.now() - start
 
       const responseData = options.responseData
         ? options.responseData(req, res)
