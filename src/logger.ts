@@ -1,4 +1,10 @@
 import { context, trace } from "@opentelemetry/api"
+import {
+  hrTime,
+  hrTimeDuration,
+  hrTimeToMilliseconds,
+} from "@opentelemetry/core"
+import { ReadableSpan } from "@opentelemetry/sdk-trace-base"
 import pino, { Logger as PinoInstance } from "pino"
 
 export type LogLevel = "info" | "error" | "debug" | "warn"
@@ -39,6 +45,7 @@ export async function withSpan<T>(
 
   return tracer.startActiveSpan(name, async (span) => {
     const start = performance.now()
+    let success = true
 
     try {
       return await fn()
@@ -50,16 +57,18 @@ export async function withSpan<T>(
       span.setStatus({ code: 2 })
       throw err
     } finally {
-      const duration = performance.now() - start
+       const durationMs = hrTimeToMilliseconds(
+        hrTimeDuration((span as unknown as ReadableSpan).startTime, hrTime())
+      )
 
       span.setAttributes({
-        "duration.ms": duration,
+        "duration.ms": durationMs,
         "app.operation": name,
-        "app.success": true,
+        "app.success": success,
       })
 
       if (logger) {
-        logger.info(`${name} -> (Done)`, { durationMs: duration })
+        logger.info(`${name} -> (Done)`, { durationMs: durationMs })
       }
 
       span.end()
