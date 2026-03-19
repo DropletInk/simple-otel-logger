@@ -28,14 +28,16 @@ export interface Logger {
 
   buildRecord<T>(level: LogLevel, message: string, data?: T):LogRecord<T>
 }
-
+export function getTracer(name?: string) {
+  return trace.getTracer(name ?? "default-tracer")
+}
 // for getting the child sapn 
 export async function withSpan<T>(
   name: string,
   fn: () => Promise<T>,
   logger?: Logger
 ): Promise<T> {
-  const tracer = trace.getTracer("simple-otel-logger")
+  const tracer = getTracer(name)
 
   return tracer.startActiveSpan(name, async (span) => {
 
