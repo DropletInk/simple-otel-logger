@@ -1,10 +1,16 @@
 import { initTelemetry } from "./telemetry.js"
+const traceUrl = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+const metricURL = process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+
+if (!traceUrl) {
+  throw new Error("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT is missing")
+}
 
 const config = {
   serviceName: process.env.OTEL_SERVICE_NAME ||"unknown service",
   environment: process.env.NODE_ENV || "development",
-  exporterUrl: process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT || "",
-  metricsExporterUrl: process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT || "",
+  exporterUrl: traceUrl,
+  metricsExporterUrl: metricURL,
 }
 
 if (config.serviceName) {
