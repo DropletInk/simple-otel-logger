@@ -7,7 +7,7 @@ export interface HttpLogOptions {
   environment?: string
 
   requestData?: (req: Request) => Record<string, unknown>
-  responseData?: (req: Request, res: Response, durationMs: number) => Record<string, unknown>  
+  responseData?: (req: Request, res: Response) => Record<string, unknown>  
 }
 
 export function createHttpLoggerMiddleware(
@@ -19,8 +19,6 @@ export function createHttpLoggerMiddleware(
     res: Response,
     next: NextFunction
   ) {
-    const start = performance.now()
-
     const headerRequestId = req.headers["x-request-id"]
     
     const { traceId } = getOtelContext()
@@ -51,10 +49,8 @@ export function createHttpLoggerMiddleware(
         })
       } 
 
-      const durationMs =  performance.now() - start
-
       const responseData = options.responseData
-        ? options.responseData(req, res, durationMs)
+        ? options.responseData(req, res)
         : {}
 
       logger.info("HTTP response sent", {

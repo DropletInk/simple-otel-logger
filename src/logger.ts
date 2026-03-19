@@ -38,7 +38,6 @@ export async function withSpan<T>(
   const tracer = trace.getTracer("simple-otel-logger")
 
   return tracer.startActiveSpan(name, async (span) => {
-    const start = performance.now()
 
     try {
       return await fn()
@@ -50,16 +49,14 @@ export async function withSpan<T>(
       span.setStatus({ code: 2 })
       throw err
     } finally {
-      const duration = performance.now() - start
 
       span.setAttributes({
-        "duration.ms": duration,
         "app.operation": name,
         "app.success": true,
       })
 
       if (logger) {
-        logger.info(`${name} -> (Done)`, { durationMs: duration })
+        logger.info(`${name} -> (Done)`)
       }
 
       span.end()
