@@ -6,16 +6,17 @@ import type { Logger } from "./logger.js"
 let started = false
 
 interface TelemetryOptions {
-  logger: Logger
+  logger?: Logger
 }
 
-export function initTelemetry(options: TelemetryOptions) {
+export function initTelemetry(options: TelemetryOptions = {}) {
   if (started) return
 
   const sdk = new NodeSDK({
     instrumentations: [getNodeAutoInstrumentations()],
-    
-    spanProcessor: new LoggingSpanProcessor(options.logger),
+    ...(options.logger && {
+      spanProcessor: new LoggingSpanProcessor(options.logger),
+    }),
   })
 
   sdk.start()
