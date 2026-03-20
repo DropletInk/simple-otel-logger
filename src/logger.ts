@@ -1,5 +1,6 @@
 import { context, trace } from "@opentelemetry/api"
 import pino, { Logger as PinoInstance } from "pino"
+import { logs, SeverityNumber } from "@opentelemetry/api-logs"
 
 export type LogLevel = "info" | "error" | "debug" | "warn"
 
@@ -28,10 +29,10 @@ export interface Logger {
 
   buildRecord<T>(level: LogLevel, message: string, data?: T):LogRecord<T>
 }
+
 export function getTracer(name?: string) {
   return trace.getTracer(name ?? "default-tracer")
 }
-// for getting the child sapn 
 export async function withSpan<T>(
   name: string,
   fn: () => Promise<T>,
@@ -76,6 +77,40 @@ export function getOtelContext() {
     traceId: sc.traceId,
     spanId: sc.spanId,
   }
+}
+
+const SEVERITY: Record<string, SeverityNumber> = {
+  debug: SeverityNumber.DEBUG,
+  info:  SeverityNumber.INFO,
+  warn:  SeverityNumber.WARN,
+  error: SeverityNumber.ERROR,
+}
+
+export class OtelLogger implements Logger {
+  private otelLogger = logs.getLogger("app-logger")
+
+  constructor(private options: LoggerOptions = {}) {}
+
+  buildRecord<T>(level: LogLevel | string, message: string, data?: T): LogRecord<T> {
+    return { level, message, data }
+  }
+
+  log<T>(level: LogLevel, record: LogRecord<T>): void {
+    this.otelLogger.emit({
+      severityNumber: SEVERITY[level] ?? SeverityNumber.INFO,
+      severityText:   level.toUpperCase(),
+      body:           record.message,
+      attributes: {
+        ...(this.options.base ?? {}),
+        ...(record.data !== undefined ? { data: JSON.stringify(record.data) } : {}),
+      },
+    })
+  }
+
+  info<T>(message: string, data?: T)  { this.log("info",  { level: "info",  message, data }) }
+  error<T>(message: string, data?: T) { this.log("error", { level: "error", message, data }) }
+  debug<T>(message: string, data?: T) { this.log("debug", { level: "debug", message, data }) }
+  warn<T>(message: string, data?: T)  { this.log("warn",  { level: "warn",  message, data }) }
 }
 
 export class ConsoleLogger implements Logger {

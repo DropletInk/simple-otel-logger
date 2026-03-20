@@ -3,14 +3,12 @@ import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions"
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node"
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
 import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base"
-
-import {
-  MeterProvider,
-  PeriodicExportingMetricReader,
-} from "@opentelemetry/sdk-metrics"
-
+import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics"
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http"
 import { resourceFromAttributes } from "@opentelemetry/resources"
+import { LoggerProvider, BatchLogRecordProcessor, SimpleLogRecordProcessor, ConsoleLogRecordExporter } from "@opentelemetry/sdk-logs"
+import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http"
+import { logs } from "@opentelemetry/api-logs"
 
 let started = false
 
@@ -19,6 +17,7 @@ export interface TelemetryConfig {
   environment?: string
   exporterUrl: string
   metricsExporterUrl?: string   
+  logsExporterUrl?: string
 }
 
 export function initTelemetry(config: TelemetryConfig) {
@@ -42,6 +41,28 @@ export function initTelemetry(config: TelemetryConfig) {
     "deployment.environment": config.environment ?? "dev",
   })
 
+const logProcessors = []
+
+if (config.environment !== "production") {
+  logProcessors.push(
+    new SimpleLogRecordProcessor(new ConsoleLogRecordExporter())
+  )
+}
+
+if (config.logsExporterUrl) {
+  logProcessors.push(
+    new BatchLogRecordProcessor(
+      new OTLPLogExporter({ url: config.logsExporterUrl })
+    )
+  )
+}
+
+const loggerProvider = new LoggerProvider({
+  resource,
+  processors: logProcessors,   
+})
+
+logs.setGlobalLoggerProvider(loggerProvider)
   const sdk = new NodeSDK({
     resource,
     spanProcessor: new BatchSpanProcessor(traceExporter),
