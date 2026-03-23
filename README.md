@@ -9,11 +9,11 @@
 
 - Automatic trace and span correlation
 
-- Support for both console logging and Pino
+- Distributed tracing (Jaeger-compatible)
 
 - Automatic telemetry initialization
 
-- Designed for microservices built with Express.js.
+- Zero-config telemetry bootstrap
 
 ## Features
 
@@ -25,16 +25,36 @@
 
  - OpenTelemetry integration
 
-- Pino and console logger support
+- OTLP exporter support (traces, metrics, logs)
 
 - Configurable log metadata
 
 - Automatic telemetry bootstrap
 
+- Environment-based configuration
+
 ## Installation
 ```bash
 npm install git+https://github.com/DropletInk/simple-otel-logger.git
 ```
+## ⚙️ Environment Configuration
+```.env
+Create a .env file in your service:
+
+OTEL_SERVICE_NAME=auth-service
+
+# Traces (Jaeger / OTLP)
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+
+# Metrics (Prometheus via Collector)
+OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
+
+# Logs (Loki / ELK via Collector)
+OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://localhost:4318/v1/logs
+
+NODE_ENV=production
+```
+
 ## Enable Telemetry Automatically
 
 ### Import the module before import express and starting your server.
@@ -42,8 +62,13 @@ npm install git+https://github.com/DropletInk/simple-otel-logger.git
 import "@dropletink/simple-otel-logger/auto"
 ```
 
-This initializes OpenTelemetry instrumentation automatically.
+This will:
 
+- Initialize OpenTelemetry
+
+- Configure exporters
+
+- Enable auto-instrumentation (HTTP, DB, etc.)
 ## Basic Logger Example
 ```typescript
 import { ConsoleLogger } from "@dropletink/simple-otel-logger"
@@ -141,6 +166,38 @@ app.listen(3000)
   "durationMs": 34,
 }
 ```
+## Custom Spans (Tracing)
+### Create custom spans for business logic:
+```typescript
+import { withSpan } from "@dropletink/simple-otel-logger"
+
+await withSpan("Save user data", async () => { 
+  // your logic here 
+})
+```
+## Observability Stack
+### This library uses OpenTelemetry (OTLP), so it works with:
+🔹 Traces
+
+- Jaeger
+
+- Grafana Tempo
+
+🔹 Metrics
+- Prometheus
+
+🔹 Logs
+- Loki
+
+- ELK Stack
+
+## Running Jaeger (Tracing)
+```bash 
+docker run -d --name jaeger \ 
+-p 16686:16686 \ 
+-p 4318:4318 \ 
+jaegertracing/all-in-one:latest
+```
 ## Logger Types
 
 ### The library currently supports two logger implementations.
@@ -168,3 +225,11 @@ const logger = new PinoLogger({
   serviceName: "auth-service"
 })
 ```
+
+## Provide a simple, extensible observability layer for:
+
+- Microservices
+
+- Distributed systems
+
+- Production-grade debugging
