@@ -41,18 +41,74 @@ npm install git+https://github.com/DropletInk/simple-otel-logger.git
 ```.env
 Create a .env file in your service:
 
-OTEL_SERVICE_NAME=auth-service
+OTEL_SERVICE_NAME=auth-service || or what will be your service name
 
-# Traces (Jaeger / OTLP)
+# Traces - if you want to see the trace details configure the env variable name with "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" and initailize the port name like -
+
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
 
-# Metrics (Prometheus via Collector)
+# Metrics - if you want to see the metrices configure the env variable name with "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT" and initailize the port name like -
+
 OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
 
-# Logs (Loki / ELK via Collector)
+# Logs - if you want to see the logs configure the env variable name with "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT" and initailize the port name like -
+
 OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://localhost:4318/v1/logs
 
-NODE_ENV=production
+NODE_ENV=production || or what will be your current environment 
+```
+## Observability Stack
+### This library uses OpenTelemetry (OTLP), so it works with:
+🔹 if you want watch trace details you can use backend like 
+
+- Jaeger
+### run this comman in your terminal
+```bash
+docker run -d --name jaeger \
+  -p 16686:16686 \
+  -p 4318:4318 \
+  jaegertracing/all-in-one:latest
+```
+### You view traces here
+```bash
+http://localhost:16686
+```
+
+🔹  if you want watch metrices you can use backend like 
+- Prometheus
+
+### run this comman in your terminal
+```bash
+docker run -d --name prometheus \
+  -p 9090:9090 \
+  prom/prometheus
+```
+### You view metrices here
+```bash
+http://localhost:9090
+```
+🔹 Logs
+- Loki
+
+### 1. Run Loki (log storage)
+```bash
+docker run -d --name loki \
+  -p 3100:3100 \
+  grafana/loki:latest
+```
+### Loki runs on:
+```bash
+http://localhost:3100
+```
+### 2. Run Grafana (UI to see logs)
+```bash
+docker run -d --name grafana \
+  -p 3000:3000 \
+  grafana/grafana
+  ```
+### Open:
+```bash
+http://localhost:3000
 ```
 
 ## Enable Telemetry Automatically
@@ -175,29 +231,7 @@ await withSpan("Save user data", async () => {
   // your logic here 
 })
 ```
-## Observability Stack
-### This library uses OpenTelemetry (OTLP), so it works with:
-🔹 Traces
 
-- Jaeger
-
-- Grafana Tempo
-
-🔹 Metrics
-- Prometheus
-
-🔹 Logs
-- Loki
-
-- ELK Stack
-
-## Running Jaeger (Tracing)
-```bash 
-docker run -d --name jaeger \ 
--p 16686:16686 \ 
--p 4318:4318 \ 
-jaegertracing/all-in-one:latest
-```
 ## Logger Types
 
 ### The library currently supports two logger implementations.
