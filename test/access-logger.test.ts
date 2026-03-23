@@ -1,81 +1,175 @@
 import test from "node:test"
 import assert from "node:assert"
+import { EventEmitter } from "node:events"
 
 import type { Request, Response, NextFunction } from "express"
 
 import { createHttpLoggerMiddleware } from "../src/access-logger.js"
+import type { Logger } from "../src/logger.js"
 
-type LogEntry = {
-  msg: string
-  data: Record<string, string | number | undefined>
+type LogCall = {
+  message: string
+  meta?: Record<string, unknown>
 }
 
-test("httpLogger logs request and response with custom options", async () => {
-  const logs: LogEntry[] = []
+function createMockLogger(): Logger & {
+  infoCalls: LogCall[]
+  errorCalls: LogCall[]
+} {
+  return {
+    infoCalls: [],
+    errorCalls: [],
 
-  const logger = {
-    info: (msg: string, data: Record<string, string | number | undefined>) => {
-      logs.push({ msg, data })
-    }
-  }
+    log() {},
 
-  const middleware = createHttpLoggerMiddleware(logger as any, {
-    environment: "test",
-
-    getUserId: (req: Request) => req.headers["x-user-id"] as string | undefined,
-
-    requestData: (req: Request) => ({
-      method: req.method,
-      url: req.originalUrl
-    }),
-
-    responseData: (req: Request, res: Response, durationMs: number) => ({
-      statusCode: res.statusCode,
-      durationMs
-    })
-  })
-
-  const req:Partial<Request> = {
-    method: "GET",
-    originalUrl: "/users",
-    headers: {
-      "x-user-id": "123"
+    buildRecord(level, message, data) {
+      return {
+        level,
+        message,
+        data,
+      }
     },
-    ip: "127.0.0.1",
-    route: { path: "/users" }
-  } 
 
-  let finishCallback: (() => void) | undefined
+    info(message, data) {
+      this.infoCalls.push({ message, meta: data as Record<string, unknown> })
+    },
 
-  const res: Partial<Response>= {
-    statusCode: 200,
-    on(event: string, cb: () => void) {
-     if (event === "finish") finishCallback = cb
-     return this as Response
-    }
+    error(message, data) {
+      this.errorCalls.push({ message, meta: data as Record<string, unknown> })
+    },
+
+    debug() {},
+    warn() {},
   }
+}
+
+type MockRequest = Pick<Request, "headers">
+
+
+
+class MockResponse extends EventEmitter {
+  statusCode: number
+
+  constructor(statusCode = 200) {
+    super()
+    this.statusCode = statusCode
+  }
+}
+
+test("logs request and calls next", () => {
+  const logger = createMockLogger()
+  const middleware = createHttpLoggerMiddleware(logger, {})
+
+  const req: MockRequest = { headers: {} }
+  const res = new MockResponse()
 
   let nextCalled = false
-
   const next: NextFunction = () => {
     nextCalled = true
   }
 
   middleware(req as Request, res as Response, next)
 
-  assert.equal(nextCalled, true)
+  assert.strictEqual(nextCalled, true)
+  assert.strictEqual(logger.infoCalls.length, 1)
 
-  finishCallback?.()
+  const log = logger.infoCalls[0]
 
-  assert.equal(logs.length, 2)
+  assert.strictEqual(log.message, "HTTP request received")
+  assert.ok(typeof log.meta?.requestId === "string")
+})
 
-  assert.equal(logs[0].msg, "HTTP request received")
-  assert.equal(logs[0].data.method, "GET")
-  assert.equal(logs[0].data.url, "/users")
-  assert.equal(logs[0].data.userId, "123")
-  assert.equal(logs[0].data.environment, "test")
+test("uses x-request-id header if present", () => {
+  const logger = createMockLogger()
+  const middleware = createHttpLoggerMiddleware(logger, {})
 
-  assert.equal(logs[1].msg, "HTTP response sent")
-  assert.equal(logs[1].data.statusCode, 200)
-  assert.ok(typeof logs[1].data.durationMs === "number")
+  const req: MockRequest = {
+    headers: { "x-request-id": "custom-id" },
+  }
+
+  const res = new MockResponse()
+
+  middleware(req as Request, res as Response, () => {})
+
+  const log = logger.infoCalls[0]
+
+  assert.strictEqual(log.meta?.requestId, "custom-id")
+})
+
+
+test("logs response on finish", () => {
+  const logger = createMockLogger()
+  const middleware = createHttpLoggerMiddleware(logger, {})
+
+  const req: MockRequest = { headers: {} }
+  const res = new MockResponse()
+
+  middleware(req as Request, res as Response, () => {})
+
+  res.emit("finish")
+
+  assert.strictEqual(logger.infoCalls.length, 2)
+
+  const log = logger.infoCalls[1]
+
+  assert.strictEqual(log.message, "HTTP response sent")
+  assert.ok(typeof log.meta?.requestId === "string")
+})
+
+
+test("logs error for 5xx responses", () => {
+  const logger = createMockLogger()
+  const middleware = createHttpLoggerMiddleware(logger, {})
+
+  const req: MockRequest = { headers: {} }
+  const res = new MockResponse(500)
+
+  middleware(req as Request, res as Response, () => {})
+
+  res.emit("finish")
+
+  assert.strictEqual(logger.errorCalls.length, 1)
+
+  const log = logger.errorCalls[0]
+
+  assert.strictEqual(log.message, "HTTP error response")
+  assert.strictEqual(log.meta?.statusCode, 500)
+})
+
+
+test("includes requestData", () => {
+  const logger = createMockLogger()
+
+  const middleware = createHttpLoggerMiddleware(logger, {
+    requestData: () => ({ user: "test-user" }),
+  })
+
+  const req: MockRequest = { headers: {} }
+  const res = new MockResponse()
+
+  middleware(req as Request, res as Response, () => {})
+
+  const log = logger.infoCalls[0]
+
+  assert.strictEqual(log.meta?.user, "test-user")
+})
+
+
+test("includes responseData", () => {
+  const logger = createMockLogger()
+
+  const middleware = createHttpLoggerMiddleware(logger, {
+    responseData: () => ({ result: "ok" }),
+  })
+
+  const req: MockRequest = { headers: {} }
+  const res = new MockResponse()
+
+  middleware(req as Request, res as Response, () => {})
+
+  res.emit("finish")
+
+  const log = logger.infoCalls[1]
+
+  assert.strictEqual(log.meta?.result, "ok")
 })

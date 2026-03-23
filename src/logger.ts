@@ -1,5 +1,6 @@
 import { context, trace } from "@opentelemetry/api"
 import pino, { Logger as PinoInstance } from "pino"
+import { logs, SeverityNumber } from "@opentelemetry/api-logs"
 
 export type LogLevel = "info" | "error" | "debug" | "warn"
 
@@ -29,17 +30,88 @@ export interface Logger {
   buildRecord<T>(level: LogLevel, message: string, data?: T):LogRecord<T>
 }
 
-export function getOtelContext(): { traceId?: string; spanId?: string }{
+export function getTracer(name?: string) {
+  return trace.getTracer(name ?? "default-tracer")
+}
+export async function withSpan<T>(
+  name: string,
+  fn: () => Promise<T>,
+  logger?: Logger
+): Promise<T> {
+  const tracer = getTracer(name)
+
+  return tracer.startActiveSpan(name, async (span) => {
+
+    try {
+      return await fn()
+    } catch (err) {
+      span.recordException(err as Error)
+      span.setAttributes({
+        "app.success": false,
+      })
+      span.setStatus({ code: 2 })
+      throw err
+    } finally {
+
+      span.setAttributes({
+        "app.operation": name,
+        "app.success": true,
+      })
+
+      if (logger) {
+        logger.info(`${name} -> (Done)`)
+      }
+
+      span.end()
+    }
+  })
+}
+
+export function getOtelContext() {
   const span = trace.getSpan(context.active())
-
-  //console.log(trace.getSpan(context.active()))
   if (!span) return {}
-
+  
   const sc = span.spanContext()
 
   return {
     traceId: sc.traceId,
     spanId: sc.spanId,
+  }
+}
+
+const SEVERITY: Record<string, SeverityNumber> = {
+  debug: SeverityNumber.DEBUG,
+  info:  SeverityNumber.INFO,
+  warn:  SeverityNumber.WARN,
+  error: SeverityNumber.ERROR,
+}
+
+export class OtelLogger {
+  private logger = logs.getLogger("otel-logger")
+
+  log(level: LogLevel, message: string, attributes?: Record<string, any>) {
+    this.logger.emit({
+      severityNumber: SEVERITY[level],
+      severityText: level.toUpperCase(),
+      body: message,
+      attributes: attributes ?? {},
+    })
+  }
+
+  info(message: string, attributes?: Record<string, any>) {
+    this.log("info", message, attributes)
+  }
+
+  error(message: string, attributes?: Record<string, any>) {
+    this.log("error", message, attributes)
+  }
+
+  warn(message: string, attributes?: Record<string, any>) {
+    this.log("warn", message, attributes)
+  }
+
+  debug(message: string, attributes?: Record<string, any>) {
+    this.log("debug", message, attributes)
   }
 }
 

@@ -3,12 +3,11 @@ import { randomUUID } from "crypto"
 import type { Request, Response, NextFunction } from "express"
 
 export interface HttpLogOptions {
-  getUserId?: (req: Request) => string | undefined
   logBody?: boolean
   environment?: string
 
   requestData?: (req: Request) => Record<string, unknown>
-  responseData?: (req: Request, res: Response, durationMs: number) => Record<string, unknown>  
+  responseData?: (req: Request, res: Response) => Record<string, unknown>  
 }
 
 export function createHttpLoggerMiddleware(
@@ -20,12 +19,17 @@ export function createHttpLoggerMiddleware(
     res: Response,
     next: NextFunction
   ) {
-    const start = Date.now()
-
+    const headerRequestId = req.headers["x-request-id"]
+    
+    const { traceId } = getOtelContext()
+    
     const requestId =
-      (req.headers["x-request-id"] as string | undefined) ?? randomUUID()
+      (Array.isArray(headerRequestId)
+        ? headerRequestId[0]
+        : headerRequestId) ??
+      traceId ??
+      randomUUID()
 
-    const userId = options.getUserId?.(req)
 
     const requestData = options.requestData
       ? options.requestData(req)
@@ -33,21 +37,24 @@ export function createHttpLoggerMiddleware(
 
     logger.info("HTTP request received", {
       requestId,
-      userId,
       environment: options.environment,
       ...requestData
     })
 
     res.on("finish", () => {
-      const durationMs = Date.now() - start
+      if (res.statusCode >= 500) {
+        logger.error("HTTP error response", {
+          statusCode: res.statusCode,
+          requestId,
+        })
+      } 
 
       const responseData = options.responseData
-        ? options.responseData(req, res, durationMs)
+        ? options.responseData(req, res)
         : {}
 
       logger.info("HTTP response sent", {
         requestId,
-        userId,
         environment: options.environment,
         ...responseData
       })
