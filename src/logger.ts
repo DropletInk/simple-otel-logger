@@ -86,33 +86,33 @@ const SEVERITY: Record<string, SeverityNumber> = {
   error: SeverityNumber.ERROR,
 }
 
-export class OtelLogger implements Logger {
-  private otelLogger = logs.getLogger("app-logger")
+export class OtelLogger {
+  private logger = logs.getLogger("otel-logger")
 
-  constructor(private options: LoggerOptions = {}) {}
-
-  buildRecord<T>(level: LogLevel | string, message: string, data?: T): LogRecord<T> {
-    return { level, message, data }
-  }
-
-  log<T>(level: LogLevel, record: LogRecord<T>): void {
-    this.otelLogger.emit({
-      severityNumber: SEVERITY[level] ?? SeverityNumber.INFO,
+  log(level: LogLevel, message: string, attributes?: Record<string, any>) {
+    this.logger.emit({
+      severityNumber: SEVERITY[level],
       severityText: level.toUpperCase(),
-      body: {
-        timestamp: new Date().toISOString(),
-        level: level.toUpperCase(),
-        message: record.message,
-        ...(this.options.base ?? {}),
-        ...(record.data ?? {})
-      }
+      body: message,
+      attributes: attributes ?? {},
     })
   }
 
-  info<T>(message: string, data?: T)  { this.log("info",  { level: "info",  message, data }) }
-  error<T>(message: string, data?: T) { this.log("error", { level: "error", message, data }) }
-  debug<T>(message: string, data?: T) { this.log("debug", { level: "debug", message, data }) }
-  warn<T>(message: string, data?: T)  { this.log("warn",  { level: "warn",  message, data }) }
+  info(message: string, attributes?: Record<string, any>) {
+    this.log("info", message, attributes)
+  }
+
+  error(message: string, attributes?: Record<string, any>) {
+    this.log("error", message, attributes)
+  }
+
+  warn(message: string, attributes?: Record<string, any>) {
+    this.log("warn", message, attributes)
+  }
+
+  debug(message: string, attributes?: Record<string, any>) {
+    this.log("debug", message, attributes)
+  }
 }
 
 export class ConsoleLogger implements Logger {
