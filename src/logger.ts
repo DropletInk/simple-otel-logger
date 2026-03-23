@@ -98,12 +98,14 @@ export class OtelLogger implements Logger {
   log<T>(level: LogLevel, record: LogRecord<T>): void {
     this.otelLogger.emit({
       severityNumber: SEVERITY[level] ?? SeverityNumber.INFO,
-      severityText:   level.toUpperCase(),
-      body:           record.message,
-      attributes: {
+      severityText: level.toUpperCase(),
+      body: {
+        timestamp: new Date().toISOString(),
+        level: level.toUpperCase(),
+        message: record.message,
         ...(this.options.base ?? {}),
-        ...(record.data !== undefined ? { data: JSON.stringify(record.data) } : {}),
-      },
+        ...(record.data ?? {})
+      }
     })
   }
 
