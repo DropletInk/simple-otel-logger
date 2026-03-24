@@ -1,5 +1,5 @@
 import { NodeSDK } from "@opentelemetry/sdk-node"
-import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions"
+import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions"
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node"
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
 import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base"
@@ -37,7 +37,7 @@ export function initTelemetry(config: TelemetryConfig) {
   })
 
   const resource = resourceFromAttributes({
-    [SemanticResourceAttributes.SERVICE_NAME]: config.serviceName,
+    [ATTR_SERVICE_NAME]: config.serviceName,
     "deployment.environment": config.environment ?? "dev",
   })
 
