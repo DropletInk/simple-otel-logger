@@ -67,6 +67,9 @@ logs.setGlobalLoggerProvider(loggerProvider)
     resource,
     spanProcessor: new BatchSpanProcessor(traceExporter),
     metricReader, 
+    logRecordProcessor: new BatchLogRecordProcessor(   // ← add this
+      new OTLPLogExporter({ url: config.logsExporterUrl })
+    ),
     instrumentations: [getNodeAutoInstrumentations()],
   })
 
