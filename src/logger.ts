@@ -22,10 +22,10 @@ export interface LogRecord<T> {
 export interface Logger {
   log<T>(level: LogLevel, record: LogRecord<T>,event?:string): void
 
-  info<T>(message: string, data?: T): void
-  error<T>(message: string, data?: T): void
-  debug<T>(message: string, data?: T): void
-  warn<T>(message: string, data?: T): void
+  info<T>(message: string, data?: T,event?:string): void
+  error<T>(message: string, data?: T,event?:string): void
+  debug<T>(message: string, data?: T,event?:string): void
+  warn<T>(message: string, data?: T,event?:string): void
 
   buildRecord<T>(level: LogLevel, message: string, data?: T):LogRecord<T>
 }
