@@ -20,7 +20,7 @@ export interface LogRecord<T> {
 }
 
 export interface Logger {
-  log<T>(level: LogLevel, record: LogRecord<T>): void
+  log<T>(level: LogLevel, record: LogRecord<T>,event?:string): void
 
   info<T>(message: string, data?: T): void
   error<T>(message: string, data?: T): void
@@ -87,7 +87,7 @@ const SEVERITY: Record<string, SeverityNumber> = {
 }
 
 export class OtelLogger implements Logger {
-  private otelLogger = logs.getLogger("app-logger")
+  private otelLogger = logs.getLogger("simple-otel-logger","1.0.0")
 
   constructor(private options: LoggerOptions = {}) {}
 
@@ -95,13 +95,16 @@ export class OtelLogger implements Logger {
     return { level, message, data }
   }
 
-  log<T>(level: LogLevel, record: LogRecord<T>): void {
+  log<T>(level: LogLevel, record: LogRecord<T>,event?:string): void {
     this.otelLogger.emit({
+      eventName: event,
       severityNumber: SEVERITY[level] ?? SeverityNumber.INFO,
       severityText: level.toUpperCase(),
       body: {
         message: record.message,
         ...(this.options.base ?? {}),
+      },
+      attributes:{
         ...(record.data ?? {})
       }
     })
