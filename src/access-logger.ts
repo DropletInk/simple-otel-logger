@@ -39,7 +39,7 @@ export function createHttpLoggerMiddleware(
       requestId,
       environment: options.environment,
       ...requestData
-    })
+    }, "HTTP request Attempt")
 
     res.on("finish", () => {
       if (res.statusCode >= 500) {
@@ -57,7 +57,7 @@ export function createHttpLoggerMiddleware(
         requestId,
         environment: options.environment,
         ...responseData
-      })
+      },"HTTP request Success")
     })
 
     next()
