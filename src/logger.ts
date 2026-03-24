@@ -20,12 +20,12 @@ export interface LogRecord<T> {
 }
 
 export interface Logger {
-  log<T>(level: LogLevel, record: LogRecord<T>,event?:string): void
-
-  info<T>(message: string, data?: T,event?:string): void
-  error<T>(message: string, data?: T,event?:string): void
-  debug<T>(message: string, data?: T,event?:string): void
-  warn<T>(message: string, data?: T,event?:string): void
+  log<T>(level: LogLevel, record: LogRecord<T>, event?: string): void
+  
+  info<T>(message: string, data?: T, event?: string): void
+  error<T>(message: string, data?: T, event?: string): void
+  debug<T>(message: string, data?: T, event?: string): void
+  warn<T>(message: string, data?: T, event?: string): void
 
   buildRecord<T>(level: LogLevel, message: string, data?: T):LogRecord<T>
 }
@@ -87,7 +87,7 @@ const SEVERITY: Record<string, SeverityNumber> = {
 }
 
 export class OtelLogger implements Logger {
-  private otelLogger = logs.getLogger("simple-otel-logger","1.0.0")
+  private otelLogger = logs.getLogger("simple-otel-logger", "1.0.0")
 
   constructor(private options: LoggerOptions = {}) {}
 
@@ -95,25 +95,38 @@ export class OtelLogger implements Logger {
     return { level, message, data }
   }
 
-  log<T>(level: LogLevel, record: LogRecord<T>,event?:string): void {
+  log<T>(level: LogLevel, record: LogRecord<T>, event?: string): void {
+   
     this.otelLogger.emit({
       eventName: event,
+
       severityNumber: SEVERITY[level] ?? SeverityNumber.INFO,
       severityText: level.toUpperCase(),
-      body: {
-        message: record.message,
+
+      body: record.message,
+
+      attributes: {
         ...(this.options.base ?? {}),
-      },
-      attributes:{
-        ...(record.data ?? {})
+        ...(record.data ?? {}),
       }
     })
   }
 
-  info<T>(message: string, data?: T)  { this.log("info",  { level: "info",  message, data }) }
-  error<T>(message: string, data?: T) { this.log("error", { level: "error", message, data }) }
-  debug<T>(message: string, data?: T) { this.log("debug", { level: "debug", message, data }) }
-  warn<T>(message: string, data?: T)  { this.log("warn",  { level: "warn",  message, data }) }
+  info<T>(message: string, data?: T, event?: string) {
+    this.log("info", { level: "info", message, data }, event)
+  }
+
+  error<T>(message: string, data?: T, event?: string) {
+    this.log("error", { level: "error", message, data }, event)
+  }
+
+  debug<T>(message: string, data?: T, event?: string) {
+    this.log("debug", { level: "debug", message, data }, event)
+  }
+
+  warn<T>(message: string, data?: T, event?: string) {
+    this.log("warn", { level: "warn", message, data }, event)
+  }
 }
 
 export class ConsoleLogger implements Logger {
