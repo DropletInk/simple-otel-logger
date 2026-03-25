@@ -36,10 +36,11 @@ export function createHttpLoggerMiddleware(
       : {}
 
     logger.info("HTTP request received", {
+      eventName:"HTTP request Attempt",
       requestId,
       environment: options.environment,
       ...requestData
-    }, "HTTP request Attempt")
+    })
 
     res.on("finish", () => {
       if (res.statusCode >= 500) {
@@ -54,10 +55,11 @@ export function createHttpLoggerMiddleware(
         : {}
 
       logger.info("HTTP response sent", {
+      eventName:"HTTP request success",
         requestId,
         environment: options.environment,
         ...responseData
-      },"HTTP request Success")
+      })
     })
 
     next()
