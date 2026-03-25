@@ -1,13 +1,17 @@
 import { context, trace } from "@opentelemetry/api"
 import pino, { Logger as PinoInstance } from "pino"
-import { logs, SeverityNumber } from "@opentelemetry/api-logs"
+import { logs, SeverityNumber ,type AnyValueMap} from "@opentelemetry/api-logs"
 
 export type LogLevel = "info" | "error" | "debug" | "warn"
 
 export interface LoggerOptions {
-  base?:Record<string,unknown>
+  base?: AnyValueMap
   customLevels?:string
 }
+
+export type LogInput = {
+  eventName?: string
+} & AnyValueMap
 
 export interface LogRecord<T> {
   message: string
@@ -86,46 +90,40 @@ const SEVERITY: Record<string, SeverityNumber> = {
   error: SeverityNumber.ERROR,
 }
 
-export class OtelLogger implements Logger {
+export class OtelLogger {
   private otelLogger = logs.getLogger("simple-otel-logger", "1.0.0")
 
   constructor(private options: LoggerOptions = {}) {}
 
-  buildRecord<T>(level: LogLevel | string, message: string, data?: T): LogRecord<T> {
-    return { level, message, data }
-  }
+  private emit(level: LogLevel, message: string, input?: LogInput) {
+    const { eventName, ...data } = input ?? {}
 
-  log<T>(level: LogLevel, record: LogRecord<T>, event?: string): void {
-   
     this.otelLogger.emit({
-      eventName: event,
-
-      severityNumber: SEVERITY[level] ?? SeverityNumber.INFO,
+      eventName,
+      severityNumber: SEVERITY[level],
       severityText: level.toUpperCase(),
-
-      body: record.message,
-
+      body: message,
       attributes: {
         ...(this.options.base ?? {}),
-        ...(record.data ?? {}),
-      }
+        ...(data ?? {}),
+      },
     })
   }
 
-  info<T>(message: string, data?: T, event?: string) {
-    this.log("info", { level: "info", message, data }, event)
+  info(message: string, input?: LogInput) {
+    this.emit("info", message, input)
   }
 
-  error<T>(message: string, data?: T, event?: string) {
-    this.log("error", { level: "error", message, data }, event)
+  debug(message: string, input?: LogInput) {
+    this.emit("debug", message, input)
   }
 
-  debug<T>(message: string, data?: T, event?: string) {
-    this.log("debug", { level: "debug", message, data }, event)
+  warn(message: string, input?: LogInput) {
+    this.emit("warn", message, input)
   }
 
-  warn<T>(message: string, data?: T, event?: string) {
-    this.log("warn", { level: "warn", message, data }, event)
+  error(message: string, input?: LogInput) {
+    this.emit("error", message, input)
   }
 }
 
