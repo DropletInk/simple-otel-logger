@@ -84,7 +84,7 @@ const SEVERITY: Record<string, SeverityNumber> = {
 }
 
 export class OtelLogger implements Logger {
-  private otelLogger = logs.getLogger("otel-logger")
+  private otelLogger = logs.getLogger("simple-otel-logger","1.0.0")
 
   constructor(private options: LoggerOptions = {}) {}
 

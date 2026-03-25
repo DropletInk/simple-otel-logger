@@ -43,7 +43,7 @@ export function initTelemetry(config: TelemetryConfig) {
 
 const logProcessors = []
 
-if (config.environment !== "production") {
+if (config.environment !== "production" || process.env.OTEL_LOG_CONSOLE === "true") {
   logProcessors.push(
     new SimpleLogRecordProcessor(new ConsoleLogRecordExporter())
   )
@@ -67,7 +67,7 @@ logs.setGlobalLoggerProvider(loggerProvider)
     resource,
     spanProcessor: new BatchSpanProcessor(traceExporter),
     metricReader, 
-    logRecordProcessor: new BatchLogRecordProcessor(   // ← add this
+    logRecordProcessor: new BatchLogRecordProcessor(   
       new OTLPLogExporter({ url: config.logsExporterUrl })
     ),
     instrumentations: [getNodeAutoInstrumentations()],
