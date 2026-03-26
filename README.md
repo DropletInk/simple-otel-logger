@@ -71,6 +71,30 @@ docker run -d --name jaeger \
 ```bash
 http://localhost:16686
 ```
+## Note:
+### By default, Jaeger runs in in-memory mode, which means:
+
+- Traces are NOT persisted
+
+- Restarting the container will delete all trace data
+## Persistent Storage with Badger DB
+### To persist traces across restarts, run Jaeger with Badger DB:
+```bash
+docker run -d --name jaeger \
+  -v jaeger-data:/badger \
+  -e SPAN_STORAGE_TYPE=badger \
+  -p 16686:16686 \
+  -p 4318:4318 \
+  jaegertracing/all-in-one:latest
+  ```
+
+  ## Benefits
+
+- Traces are stored locally
+
+- Data survives container restarts
+
+- You can search old traces using traceId
 
 🔹  if you want watch metrices you can use backend like 
 - Prometheus
