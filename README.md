@@ -13,8 +13,6 @@
 
 - Automatic telemetry initialization
 
-- Zero-config telemetry bootstrap
-
 ## Features
 
 - Structured JSON logging
@@ -43,15 +41,15 @@ Create a .env file in your service:
 
 OTEL_SERVICE_NAME=auth-service || or what will be your service name
 
-# Traces - if you want to see the trace details configure the env variable name with "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" and initailize the port name like -
+# Traces - if you want to see the trace details configure the env variable name with "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" and initailize the URL like -
 
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
 
-# Metrics - if you want to see the metrices configure the env variable name with "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT" and initailize the port name like -
+# Metrics - if you want to see the metrices configure the env variable name with "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT" and initailize the URL like -
 
 OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
 
-# Logs - if you want to see the logs configure the env variable name with "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT" and initailize the port name like -
+# Logs - if you want to see the logs configure the env variable name with "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT" and initailize the URL like -
 
 OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://localhost:4318/v1/logs
 
@@ -125,7 +123,7 @@ This will:
 - Configure exporters
 
 - Enable auto-instrumentation (HTTP, DB, etc.)
-## Basic Logger Example
+## Basic ConsoleLogger Example
 ```typescript
 import { ConsoleLogger } from "@dropletink/simple-otel-logger"
 
@@ -152,7 +150,51 @@ logger.info("Application started",{data})
   "message": "Application started",
   "timestamp": "2026-03-13T10:00:00Z",
   "traceId": "f2b8c7...",
-  "spanId": "1d9a2c..."
+  "spanId": "1d9a2c...",
+  "data": {"key":"value",...}
+}
+```
+## OtelLogger example
+```typescript
+import "@dropletink/simple-otel-logger/auto"
+import { OtelLogger } from "@dropletink/simple-otel-logger"
+
+const logger = new OtelLogger({
+  base: { service: "auth-service" }
+})
+
+logger.info("user_login", {
+  userId: "123",
+  email: "user@email.com",
+  eventName: "User.login"
+})
+```
+## Example output
+```json
+{
+  resource: {
+    attributes: {
+      'service.name': 'auth-service',
+      'deployment.environment': 'development'
+    }
+  },
+  instrumentationScope: {
+    name: 'simple-otel-logger',
+    version: '1.0.0',
+    schemaUrl: undefined
+  },
+  timestamp: 1774506142377000,
+  traceId: '1d644d5738990e0cc6735bc709a3e3ee',
+  spanId: '217215648a04304a',
+  traceFlags: 1,
+  severityText: 'INFO',
+  severityNumber: 9,
+  eventName: 'User.login',
+  body: 'login_success',
+  attributes: {   
+    userId: "123",
+    email: "user@email.com"
+   }
 }
 ```
 ## HTTP Request Logging Middleware
@@ -259,7 +301,19 @@ const logger = new PinoLogger({
   serviceName: "auth-service"
 })
 ```
+## OtelLogger
+### opentelemetry logging with best logging structure
+```typescript
+const logger = new OtelLogger({
+  base: { service: "auth-service" }
+})
 
+logger.info("user_login", {
+  userId: "123",
+  email: "user@email.com",
+  eventName: "User.login"
+})
+```
 ## Provide a simple, extensible observability layer for:
 
 - Microservices
