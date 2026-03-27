@@ -31,6 +31,19 @@
 
 - Environment-based configuration
 
+## Prerequisites
+### Before using this library, make sure your environment meets the following requirements.
+
+The following environment variables must be set before initializing telemetry. 
+
+```
+OTEL_SERVICE_NAME=your-service-name
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces   
+OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics 
+OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://localhost:4318/v1/logs        
+NODE_ENV=development
+```
+`Note`: If endpoints are not set, the auto-initializer (/auto) will throw an error and prevent your server from starting.
 ## Installation
 ```bash
 npm install git+https://github.com/DropletInk/simple-otel-logger.git
