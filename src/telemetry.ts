@@ -63,13 +63,11 @@ const loggerProvider = new LoggerProvider({
 })
 
 logs.setGlobalLoggerProvider(loggerProvider)
+
   const sdk = new NodeSDK({
     resource,
     spanProcessor: new BatchSpanProcessor(traceExporter),
     metricReader, 
-    logRecordProcessor: new BatchLogRecordProcessor(   
-      new OTLPLogExporter({ url: config.logsExporterUrl })
-    ),
     instrumentations: [getNodeAutoInstrumentations()],
   })
 

@@ -7,14 +7,6 @@ if (!traceUrl) {
   throw new Error("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT is missing")
 }
 
-if (!metricURL) {
-  throw new Error("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT is missing")
-}
-
-if (!logsURL) {
-  throw new Error("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT is missing")
-}
-
 const config = {
   serviceName: process.env.OTEL_SERVICE_NAME ||"unknown service",
   environment: process.env.NODE_ENV || "development",
