@@ -1,3 +1,4 @@
+import 'dotenv/config' 
 import { getTelemetrySdkInitializer } from "./telemetry.js"
 const traceUrl = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
 const metricURL = process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
