@@ -1,4 +1,6 @@
-import 'dotenv/config' 
+import dotenv from 'dotenv';
+
+dotenv.config();
 import { getTelemetrySdkInitializer } from "./telemetry.js"
 const traceUrl = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
 const metricURL = process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
@@ -17,5 +19,6 @@ const config = {
 }
 
 if (config.serviceName) {
-  getTelemetrySdkInitializer(config)
+  const init = getTelemetrySdkInitializer(config)
+  init?.() 
 }
