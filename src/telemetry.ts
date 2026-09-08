@@ -19,8 +19,7 @@ import {
 } from "@opentelemetry/sdk-logs";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { logs } from "@opentelemetry/api-logs";
-import { JsonConsoleLogRecordExporter } from "./json-console-exporter.js";
-import { PrettyConsoleLogRecordExporter } from "./pretty-console-exporter.js";
+import { JsonConsoleLogRecordExporter, PrettyConsoleLogRecordExporter } from "./console-exporters.js"
 
 let started = false;
 
