@@ -64,6 +64,19 @@ const COLORIZED_QUOTED_FIELDS = [
   "deployment.environment",
 ] as const;
 
+function colorizeQuotedFields(
+  out: string,
+  color: string,
+  fields: readonly string[],
+): string {
+  for (const field of fields) {
+    const escaped = field.replace(/\./g, "\\.");
+    const pattern = new RegExp(`('${escaped}': ')([^']*)(')`);
+    out = out.replace(pattern, `$1${color}$2${RESET}$3`);
+  }
+  return out;
+}
+
 /**
  * Colorizes the value of each named field
  */
@@ -93,12 +106,12 @@ export class MultiLineJsonLogRecordExporter implements LogRecordExporter {
 
       let out = util.inspect(record, {
         depth: null,
-        colors: true,
+        colors: false,
         compact: false,
       });
 
       out = colorizeFields(out, color, COLORIZED_FIELDS);
-      out = colorizeFields(out, color, COLORIZED_QUOTED_FIELDS);
+      out = colorizeQuotedFields(out, color, COLORIZED_QUOTED_FIELDS);
 
       console.log(out);
     }
