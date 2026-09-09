@@ -57,7 +57,7 @@ const LEVEL_COLOR: Record<string, string> = {
 };
 const RESET = "\x1b[0m";
 
-const COLORIZED_FIELDS = ["severityText", "eventName", "body"] as const;
+const COLORIZED_FIELDS = ["severityText", "eventName", "body", "traceId"] as const;
 
 const COLORIZED_QUOTED_FIELDS = [
   "service.name",
