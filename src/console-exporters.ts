@@ -6,11 +6,6 @@ import type { ExportResult } from "@opentelemetry/core";
 import { ExportResultCode } from "@opentelemetry/core";
 import util from "util";
 
-/**
- * Canonical shape both exporters emit. Field NAMES and ORDER must stay
- * identical between dev console output and docker JSON output, or cross
- * environment debugging becomes a guessing game.
- */
 function toRecord(log: ReadableLogRecord) {
   const [seconds, nanos] = log.hrTime;
 
@@ -37,9 +32,8 @@ function toRecord(log: ReadableLogRecord) {
 
 /**
  * Used for docker / non-dev. One JSON object per line, same fields/order
- * as the dev console dump below — nothing renamed, nothing flattened.
  */
-export class JsonConsoleLogRecordExporter implements LogRecordExporter {
+export class SingleLineJsonLogRecordExporter implements LogRecordExporter {
   export(
     logs: ReadableLogRecord[],
     resultCallback: (result: ExportResult) => void,
@@ -56,20 +50,39 @@ export class JsonConsoleLogRecordExporter implements LogRecordExporter {
 }
 
 const LEVEL_COLOR: Record<string, string> = {
-  ERROR: "\x1b[31m",
-  WARN: "\x1b[33m",
-  INFO: "\x1b[36m",
-  DEBUG: "\x1b[90m",
+  ERROR: "\x1b[31m", // red
+  WARN: "\x1b[33m", // yellow
+  INFO: "\x1b[32m", // green
+  DEBUG: "\x1b[34m", // blue
 };
 const RESET = "\x1b[0m";
 
+const COLORIZED_FIELDS = ["severityText", "eventName", "body"] as const;
+
+const COLORIZED_QUOTED_FIELDS = [
+  "service.name",
+  "deployment.environment",
+] as const;
+
 /**
- * Used for dev. Prints the exact same raw-object dump Node's default
- * console.log(record) produces (unquoted keys, multi-line, util.inspect
- * formatting) — just with the severityText/eventName lines colorized so
- * levels are easy to pick out at a glance. No fields added/removed/renamed.
+ * Colorizes the value of each named field
  */
-export class PrettyConsoleLogRecordExporter implements LogRecordExporter {
+function colorizeFields(
+  out: string,
+  color: string,
+  fields: readonly string[],
+): string {
+  for (const field of fields) {
+    const pattern = new RegExp(`(${field}: ')([^']*)(')`);
+    out = out.replace(pattern, `$1${color}$2${RESET}$3`);
+  }
+  return out;
+}
+
+/**
+ * Used for development
+ */
+export class MultiLineJsonLogRecordExporter implements LogRecordExporter {
   export(
     logs: ReadableLogRecord[],
     resultCallback: (result: ExportResult) => void,
@@ -78,26 +91,14 @@ export class PrettyConsoleLogRecordExporter implements LogRecordExporter {
       const record = toRecord(log);
       const color = LEVEL_COLOR[record.severityText ?? "INFO"] ?? "";
 
-      // Plain util.inspect dump — identical to what console.log(record) emits.
       let out = util.inspect(record, {
         depth: null,
-        colors: false,
+        colors: true,
         compact: false,
       });
 
-      // Colorize just the severityText value, in place, on its own line.
-      out = out.replace(
-        /(severityText: ')([^']*)(')/,
-        `$1${color}$2${RESET}$3`,
-      );
-
-      // Colorize the eventName value too, if present.
-      if (record.eventName) {
-        out = out.replace(
-          /(eventName: ')([^']*)(')/,
-          `$1${color}$2${RESET}$3`,
-        );
-      }
+      out = colorizeFields(out, color, COLORIZED_FIELDS);
+      out = colorizeFields(out, color, COLORIZED_QUOTED_FIELDS);
 
       console.log(out);
     }

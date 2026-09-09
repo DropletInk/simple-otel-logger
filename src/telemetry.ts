@@ -19,7 +19,7 @@ import {
 } from "@opentelemetry/sdk-logs";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { logs } from "@opentelemetry/api-logs";
-import { JsonConsoleLogRecordExporter, PrettyConsoleLogRecordExporter } from "./console-exporters.js"
+import { SingleLineJsonLogRecordExporter, MultiLineJsonLogRecordExporter } from "./console-exporters.js"
 
 let started = false;
 
@@ -36,11 +36,11 @@ function buildLogProcessors(config: TelemetryConfig): LogRecordProcessor[] {
 
   if (config.environment === "development") {
     logProcessors.push(
-      new SimpleLogRecordProcessor(new PrettyConsoleLogRecordExporter()),
+      new SimpleLogRecordProcessor(new MultiLineJsonLogRecordExporter()),
     );
   } else if (process.env.OTEL_LOG_CONSOLE === "true") {
     logProcessors.push(
-      new SimpleLogRecordProcessor(new JsonConsoleLogRecordExporter()),
+      new SimpleLogRecordProcessor(new SingleLineJsonLogRecordExporter()),
     );
   }
 
