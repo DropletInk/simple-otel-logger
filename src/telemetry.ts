@@ -70,7 +70,7 @@ function buildSpanProcessors(config: TelemetryConfig): SpanProcessor[] {
     new BatchSpanProcessor(new OTLPTraceExporter({ url: config.exporterUrl })),
   ]
 
-  if (config.environment === "development" || process.env.OTEL_LOG_CONSOLE === "true") {
+  if (process.env.OTEL_LOG_CONSOLE === "true") {
     processors.push(new SimpleSpanProcessor(new ConsoleSpanExporter()))
   }
 
@@ -95,7 +95,7 @@ function createSdk(config: TelemetryConfig): NodeSDK {
     processors: buildLogProcessors(config),
   })
   logs.setGlobalLoggerProvider(loggerProviderRef)
-  
+
   return new NodeSDK({
     resource,
     spanProcessors: buildSpanProcessors(config),
