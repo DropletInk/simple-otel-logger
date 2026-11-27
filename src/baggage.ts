@@ -1,23 +1,18 @@
 import {
   context,
   propagation,
-  ROOT_CONTEXT,
   type Context,
 } from "@opentelemetry/api"
 import type { AnyValueMap } from "@opentelemetry/api-logs"
 
-export const DEFAULT_BAGGAGE_KEYS: readonly string[] = []
-
-
-const STATE_KEY = "__yourorg_otel_common_baggage_keys__"
-const store = globalThis as unknown as Record<string, string[] | undefined>
+let baggageKeys: readonly string[] = []
 
 export function setBaggageKeys(keys: readonly string[]): void {
-  store[STATE_KEY] = [...keys]
+  baggageKeys = keys.map((k) => k.trim()).filter(Boolean)
 }
 
 export function getBaggageKeys(): readonly string[] {
-  return store[STATE_KEY] ?? DEFAULT_BAGGAGE_KEYS
+  return baggageKeys
 }
 
 export function assertBaggageKeysConfigured(keys: readonly string[]): void {
@@ -69,30 +64,4 @@ export function getBaggageAttributes(
 
 export function bindToContext<F extends (...args: any[]) => any>(fn: F): F {
   return context.bind(context.active(), fn)
-}
-
-export function injectContextHeaders(
-  headers: Record<string, string> = {}
-): Record<string, string> {
-  propagation.inject(context.active(), headers)
-  return headers
-}
-
-export function runFromCarrier<T>(
-  carrier: Record<string, unknown>,
-  fn: () => T
-): T {
-  return context.with(propagation.extract(ROOT_CONTEXT, carrier), fn)
-}
-
-export function toStringCarrier(
-  headers: Record<string, unknown> | undefined
-): Record<string, string> {
-  const out: Record<string, string> = {}
-  for (const [k, v] of Object.entries(headers ?? {})) {
-    if (v == null) continue
-    const first = Array.isArray(v) ? v[0] : v
-    out[k] = Buffer.isBuffer(first) ? first.toString() : String(first)
-  }
-  return out
 }
