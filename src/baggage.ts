@@ -5,6 +5,8 @@ import {
 } from "@opentelemetry/api"
 import type { AnyValueMap } from "@opentelemetry/api-logs"
 
+export const DEFAULT_BAGGAGE_KEYS: readonly string[] = []
+
 let baggageKeys: readonly string[] = []
 
 export function setBaggageKeys(keys: readonly string[]): void {
@@ -12,7 +14,7 @@ export function setBaggageKeys(keys: readonly string[]): void {
 }
 
 export function getBaggageKeys(): readonly string[] {
-  return baggageKeys
+  return baggageKeys ?? DEFAULT_BAGGAGE_KEYS
 }
 
 export function assertBaggageKeysConfigured(keys: readonly string[]): void {
