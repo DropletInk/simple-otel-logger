@@ -1,5 +1,6 @@
 export * from "./logger.js"
-
 export * from "./access-logger.js"
-
 export * from "./telemetry.js"
+export * from "./baggage.js"
+export * from "./baggage-log-processor.js"
+export * from "./baggage-span-processor.js"

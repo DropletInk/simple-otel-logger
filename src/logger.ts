@@ -1,12 +1,15 @@
 import { context, trace } from "@opentelemetry/api"
 import pino, { Logger as PinoInstance } from "pino"
-import { logs, SeverityNumber ,type AnyValueMap} from "@opentelemetry/api-logs"
+import { logs, SeverityNumber, type AnyValueMap } from "@opentelemetry/api-logs"
+import { getBaggageAttributes } from "./baggage.js"
 
 export type LogLevel = "info" | "error" | "debug" | "warn"
 
 export interface LoggerOptions {
   base?: AnyValueMap
-  customLevels?:string
+  customLevels?: string
+
+  baggageKeys?: readonly string[]
 }
 
 export type LogInput = {
@@ -41,11 +44,7 @@ export function getOtelContext(): AnyValueMap {
   if (!span) return {}
 
   const sc = span.spanContext()
-
-  return {
-    traceId: sc.traceId,
-    spanId: sc.spanId,
-  }
+  return { traceId: sc.traceId, spanId: sc.spanId }
 }
 
 export async function withSpan<T>(
@@ -56,35 +55,70 @@ export async function withSpan<T>(
   const tracer = getTracer(name)
 
   return tracer.startActiveSpan(name, async (span) => {
+    let success = true
     try {
       return await fn()
     } catch (err) {
+      success = false
       span.recordException(err as Error)
       span.setStatus({ code: 2 })
       throw err
     } finally {
       span.setAttributes({
         "app.operation": name,
-        "app.success": true,
+        "app.success": success,
       })
-
-      logger?.info(`${name} -> (Done)`)
-
+      logger?.info(`${name} -> (${success ? "Done" : "Failed"})`)
       span.end()
     }
   })
 }
 
-
-const SEVERITY: Record<string, SeverityNumber> = {
+const SEVERITY: Record<LogLevel, SeverityNumber> = {
   debug: SeverityNumber.DEBUG,
-  info:  SeverityNumber.INFO,
-  warn:  SeverityNumber.WARN,
+  info: SeverityNumber.INFO,
+  warn: SeverityNumber.WARN,
   error: SeverityNumber.ERROR,
 }
 
+abstract class BaseLogger implements Logger {
+  constructor(protected options: LoggerOptions = {}) {}
+
+  abstract log(level: LogLevel, record: LogRecord): void
+
+  buildRecord(level: LogLevel, message: string, input?: LogInput): LogRecord {
+    const { eventName, ...attributes } = input ?? {}
+
+    return {
+      level: this.options.customLevels ?? level,
+      message,
+      eventName,
+      timestamp: new Date().toISOString(),
+      attributes: {
+        ...(this.options.base ?? {}),
+        ...getOtelContext(),
+        ...getBaggageAttributes(this.options.baggageKeys), // undefined -> global keys
+        ...attributes,
+      },
+    }
+  }
+
+  info(message: string, input?: LogInput): void {
+    this.log("info", this.buildRecord("info", message, input))
+  }
+  error(message: string, input?: LogInput): void {
+    this.log("error", this.buildRecord("error", message, input))
+  }
+  debug(message: string, input?: LogInput): void {
+    this.log("debug", this.buildRecord("debug", message, input))
+  }
+  warn(message: string, input?: LogInput): void {
+    this.log("warn", this.buildRecord("warn", message, input))
+  }
+}
+
 export class OtelLogger implements Logger {
-  private otelLogger = logs.getLogger("simple-otel-logger","1.0.0")
+  private otelLogger = logs.getLogger("simple-otel-logger", "1.0.0")
 
   constructor(private options: LoggerOptions = {}) {}
 
@@ -97,7 +131,10 @@ export class OtelLogger implements Logger {
       eventName,
       attributes: {
         ...(this.options.base ?? {}),
-        ...(attributes ?? {}),
+        ...(this.options.baggageKeys
+          ? getBaggageAttributes(this.options.baggageKeys)
+          : {}),
+        ...attributes,
       },
     }
   }
@@ -115,39 +152,18 @@ export class OtelLogger implements Logger {
   info(message: string, input?: LogInput): void {
     this.log("info", this.buildRecord("info", message, input))
   }
-
   error(message: string, input?: LogInput): void {
     this.log("error", this.buildRecord("error", message, input))
   }
-
   debug(message: string, input?: LogInput): void {
     this.log("debug", this.buildRecord("debug", message, input))
   }
-
   warn(message: string, input?: LogInput): void {
     this.log("warn", this.buildRecord("warn", message, input))
   }
 }
 
-export class ConsoleLogger implements Logger {
-  constructor(private options: LoggerOptions = {}) {}
-
-  buildRecord(level: LogLevel, message: string, input?: LogInput): LogRecord {
-    const { eventName, ...attributes } = input ?? {}
-
-    return {
-      level: this.options.customLevels ?? level,
-      message,
-      eventName,
-      timestamp: new Date().toISOString(),
-      attributes: {
-        ...(this.options.base ?? {}),
-        ...getOtelContext(),
-        ...(attributes ?? {}),
-      },
-    }
-  }
-
+export class ConsoleLogger extends BaseLogger {
   log(level: LogLevel, record: LogRecord): void {
     const out = JSON.stringify(record)
 
@@ -168,69 +184,17 @@ export class ConsoleLogger implements Logger {
         console.log(out)
     }
   }
-
-  info(message: string, input?: LogInput): void {
-    this.log("info", this.buildRecord("info", message, input))
-  }
-
-  error(message: string, input?: LogInput): void {
-    this.log("error", this.buildRecord("error", message, input))
-  }
-
-  debug(message: string, input?: LogInput): void {
-    this.log("debug", this.buildRecord("debug", message, input))
-  }
-
-  warn(message: string, input?: LogInput): void {
-    this.log("warn", this.buildRecord("warn", message, input))
-  }
 }
 
-
-export class PinoLogger implements Logger {
+export class PinoLogger extends BaseLogger {
   private logger: PinoInstance
 
-  constructor(private options: LoggerOptions = {}) {
-    this.logger = pino({
-      base: {
-        ...(this.options.base ?? {}),
-      },
-    })
-  }
-
-  buildRecord(level: LogLevel, message: string, input?: LogInput): LogRecord {
-    const { eventName, ...attributes } = input ?? {}
-
-    return {
-      level: this.options.customLevels ?? level,
-      message,
-      eventName,
-      timestamp: new Date().toISOString(),
-      attributes: {
-        ...(this.options.base ?? {}),
-        ...getOtelContext(),
-        ...(attributes ?? {}),
-      },
-    }
+  constructor(options: LoggerOptions = {}) {
+    super(options)
+    this.logger = pino({ base: { ...(options.base ?? {}) } })
   }
 
   log(level: LogLevel, record: LogRecord): void {
     this.logger[level](record)
-  }
-
-  info(message: string, input?: LogInput): void {
-    this.log("info", this.buildRecord("info", message, input))
-  }
-
-  error(message: string, input?: LogInput): void {
-    this.log("error", this.buildRecord("error", message, input))
-  }
-
-  warn(message: string, input?: LogInput): void {
-    this.log("warn", this.buildRecord("warn", message, input))
-  }
-
-  debug(message: string, input?: LogInput): void {
-    this.log("debug", this.buildRecord("debug", message, input))
   }
 }
